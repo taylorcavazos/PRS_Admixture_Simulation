@@ -6,7 +6,9 @@ import math
 import pandas as pd
 import numpy as np
 
-def out_of_africa(N_CEU, N_YRI, rmap, N_CHB=0, prefix="data/trees/", chrom=22):
+def out_of_africa(N_CEU, N_YRI, rmap, N_CHB=0, 
+	prefix="/Users/taylorcavazos/repos/Local_Ancestry_PRS/data/trees/", 
+	chrom=22):
 	"""
 	This function is copied from the msprime documentation. It is used to
 	simulate African, European, and Asian individuals based on the Out of 
@@ -96,10 +98,10 @@ def out_of_africa(N_CEU, N_YRI, rmap, N_CHB=0, prefix="data/trees/", chrom=22):
 	                        population_configurations=population_configurations,
 	                        migration_matrix=migration_matrix,
 	                        demographic_events=demographic_events)
-	tree.dump(prefix+"tree_eur_afr_mating_chr{}.hdf5".format(str(chrom)))
+	tree.dump(prefix+"tree_YRI_5e4_CEU_2e6_chr{}.hdf5".format(str(chrom)))
 	return tree
 
-def write_sample_map(tree,outdir):
+def write_sample_map(tree,outdir, N_CEU, N_YRI):
 	"""
 	Write file with ids and population for each sample
 
@@ -111,11 +113,13 @@ def write_sample_map(tree,outdir):
 		Output file for writing the sample map
 	"""
 	pop_dict = {0:"YRI",1:"CEU",2:"CHB"}
-	pops,inds = [],[]
+	pops,inds,hap1,hap2 = [],[],[],[]
 	count=0
 	for i in range(0,2*(N_CEU+N_YRI),2):
 		pops.append(pop_dict.get(tree.get_population(i)))
 		inds.append("msp_"+str(count))
+		#hap1.append(i)
+		#hap2.append(i+1)
 		count+=1
 	pd.DataFrame(pops, index=inds).to_csv(outdir+"CEU_YRI_sample_map.txt",header=False,sep="\t")
 	return
@@ -142,7 +146,11 @@ def simulate_out_of_afr(N_CEU, N_YRI, rmap, outdir, N_CHB=0, chrom=22):
 		Chromosome number of rmap file
 
 	"""
-	tree = out_of_africa(N_CEU, N_YRI, rmap)
-	tree.write_vcf(outdir+"CEU_YRI_chr{}.vcf".format(chrom), ploidy=2, contig_id=str(chrom))
-	write_sample_map(tree, outdir)
+	print("Simulating populations with msprime")
+	#tree = out_of_africa(N_CEU, N_YRI, rmap)
+	tree = msprime.load("/Users/taylorcavazos/repos/Local_Ancestry_PRS/data/trees/tree_YRI_5e4_CEU_2e6_chr22.hdf5")
+	#print("Writing genotypes to vcf")
+	#tree.write_vcf(open(outdir+"YRI_CEU_chr{}_1e4.vcf".format(chrom),"w"), ploidy=2, contig_id=str(chrom))
+	print("Writing sample map")
+	write_sample_map(tree, outdir, N_CEU, N_YRI)
 
