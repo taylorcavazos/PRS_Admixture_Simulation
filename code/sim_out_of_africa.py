@@ -98,7 +98,6 @@ def out_of_africa(N_CEU, N_YRI, rmap, N_CHB=0,
 	                        population_configurations=population_configurations,
 	                        migration_matrix=migration_matrix,
 	                        demographic_events=demographic_events)
-	tree.dump(prefix+"tree_YRI_5e4_CEU_2e6_chr{}.hdf5".format(str(chrom)))
 	return tree
 
 def write_sample_map(tree,outdir, N_CEU, N_YRI):
@@ -147,8 +146,9 @@ def simulate_out_of_afr(N_CEU, N_YRI, rmap, outdir, N_CHB=0, chrom=22):
 
 	"""
 	print("Simulating populations with msprime")
-	#tree = out_of_africa(N_CEU, N_YRI, rmap)
-	tree = msprime.load("/Users/taylorcavazos/repos/Local_Ancestry_PRS/data/trees/tree_YRI_5e4_CEU_2e6_chr22.hdf5")
+	tree = out_of_africa(N_CEU, N_YRI, rmap)
+	tree.dump()
+	#tree = msprime.load("/Users/taylorcavazos/repos/Local_Ancestry_PRS/data/trees/tree_YRI_5e4_CEU_2e6_chr22.hdf5")
 	#print("Writing genotypes to vcf")
 	#tree.write_vcf(open(outdir+"YRI_CEU_chr{}_1e4.vcf".format(chrom),"w"), ploidy=2, contig_id=str(chrom))
 	print("Writing sample map")
