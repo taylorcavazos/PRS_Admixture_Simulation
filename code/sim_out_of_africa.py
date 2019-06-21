@@ -100,7 +100,7 @@ def out_of_africa(N_CEU, N_YRI, rmap, N_CHB=0,
 	                        demographic_events=demographic_events)
 	return tree
 
-def write_sample_map(tree,outdir, N_CEU, N_YRI):
+def write_sample_map(tree, N_CEU, N_YRI):
 	"""
 	Write file with ids and population for each sample
 
@@ -117,13 +117,16 @@ def write_sample_map(tree,outdir, N_CEU, N_YRI):
 	for i in range(0,2*(N_CEU+N_YRI),2):
 		pops.append(pop_dict.get(tree.get_population(i)))
 		inds.append("msp_"+str(count))
-		#hap1.append(i)
-		#hap2.append(i+1)
+		hap1.append(i)
+		hap2.append(i+1)
 		count+=1
-	pd.DataFrame(pops, index=inds).to_csv(outdir+"CEU_YRI_sample_map.txt",header=False,sep="\t")
-	return
+	df = pd.DataFrame(np.column_stack([pops,hap1,hap2]), index=inds)
+	# df.to_csv("/Users/taylorcavazos/repos/Local_Ancestry_PRS/data/samples/sample",header=False,sep="\t")
+	df = df.reset_index()
+	df.columns = np.arange(0,4)
+	return df
 
-def simulate_out_of_afr(N_CEU, N_YRI, rmap, outdir, N_CHB=0, chrom=22):
+def simulate_out_of_afr(N_CEU, N_YRI, rmap_file, N_CHB=0, chrom=22):
 	"""
 	Function to simulate European and African homogeneous populations based on
 	msprime's out_of_africa model. Outputs vcf of sample genotypes and sample map
@@ -135,7 +138,7 @@ def simulate_out_of_afr(N_CEU, N_YRI, rmap, outdir, N_CHB=0, chrom=22):
 		Number of samples of European ancestry
 	N_YRI : int
 		Number of samples of African ancestry
-	rmap : msprime.simulations.RecombinationMap
+	rmap_file : msprime.simulations.RecombinationMap
 		Recombination map for a reference chromosome
 	outdir : str
 		directory to write data outputs to
@@ -145,12 +148,16 @@ def simulate_out_of_afr(N_CEU, N_YRI, rmap, outdir, N_CHB=0, chrom=22):
 		Chromosome number of rmap file
 
 	"""
-	print("Simulating populations with msprime")
+	#print("Simulating populations with msprime")
+	rmap = msprime.RecombinationMap.read_hapmap(rmap_file)
 	tree = out_of_africa(N_CEU, N_YRI, rmap)
-	tree.dump()
+	# tree = msprime.load("/Users/taylorcavazos/repos/Local_Ancestry_PRS/data/trees/sim1/tree_all.hdf")
+	sample_map = write_sample_map(tree, N_CEU, N_YRI)
+	return tree, sample_map
+	#tree.dump()
 	#tree = msprime.load("/Users/taylorcavazos/repos/Local_Ancestry_PRS/data/trees/tree_YRI_5e4_CEU_2e6_chr22.hdf5")
 	#print("Writing genotypes to vcf")
 	#tree.write_vcf(open(outdir+"YRI_CEU_chr{}_1e4.vcf".format(chrom),"w"), ploidy=2, contig_id=str(chrom))
-	print("Writing sample map")
-	write_sample_map(tree, outdir, N_CEU, N_YRI)
+	#print("Writing sample map")
+	#write_sample_map(tree, outdir, N_CEU, N_YRI)
 
