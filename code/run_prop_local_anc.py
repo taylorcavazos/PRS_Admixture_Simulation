@@ -2,17 +2,15 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import sys
 import gzip
-
-sys.path.insert(0,"/Users/taylorcavazos/repos/Local_Ancestry_PRS/code/")
-sys.path.insert(0,"/Users/taylorcavazos/Documents/Prelim_Quals/Aim1")
+import tqdm
 
 from sim_out_of_africa import *
-from output_true_prs import *
+# from output_true_prs import *
 
-path_tree = "/Users/taylorcavazos/repos/Local_Ancestry_PRS/data/trees/tree_sub_CEU_1.95e5.hdf"
+path_tree = "trees/tree_mate.hdf"
 n_sites = msprime.load(path_tree).num_sites
 
-with open("/Users/taylorcavazos/repos/other_tools/admixture-data/output/admix_afr_amer.result") as f:
+with open("admixed_data/output/admix_afr_amer.result") as f:
     pbar = tqdm.tqdm(total=n_sites+1)
     ind = 0
     for line in f:
@@ -36,4 +34,4 @@ with open("/Users/taylorcavazos/repos/other_tools/admixture-data/output/admix_af
         pbar.update(1)
     anc_df["Prop_CEU"] = counts_CEU/(2*(ind-1))
     anc_df["Prop_YRI"] = counts_YRI/(2*(ind-1))
-    anc_df.to_csv("/Users/taylorcavazos/repos/other_tools/admixture-data/output/admix_afr_amer.prop.anc",sep="\t")
+    anc_df.to_csv("admixed_data/output/admix_afr_amer.prop.anc",sep="\t")
