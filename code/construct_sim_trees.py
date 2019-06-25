@@ -59,6 +59,7 @@ print("Number of sites = {}".format(main_tree.num_sites))
 EUR_all = sample_map_all[sample_map_all.iloc[:,1]=="CEU"]
 YRI_all = sample_map_all[sample_map_all.iloc[:,1]=="YRI"]
 
+
 print("Selecting samples for mating")
 
 EUR_mate = EUR_all.loc[np.random.choice(EUR_all.index,size=N_MATE,replace=False)]
@@ -72,6 +73,8 @@ for ind in ALL_mate.index:
     mate_samples.append(ALL_mate.loc[ind,2])
     mate_samples.append(ALL_mate.loc[ind,3])
 
+mate_samples = np.array(mate_samples).astype(np.int32)
+
 print("Saving mating population tree")
 
 tree_mate = main_tree.simplify(samples=mate_samples,filter_sites=False)
@@ -83,9 +86,8 @@ mate_sample_map.to_csv("trees/sample_map_MATE.txt",header=False,sep="\t",index=F
 print("Saving non-mating population tree")
 
 all_data = np.array(main_tree.samples()).astype(np.int32)
-other_samps = np.delete(all_data,np.array(mate_samples).astype(np.int32))
+other_samps = [ind for ind in all_data if ind not in mate_samples]
 tree_other = main_tree.simplify(samples = other_samps, filter_sites=False)
-
 sample_map_other = write_sample_map(tree_other,N_CEU-N_MATE,N_YRI-N_MATE)
 
 
@@ -106,14 +108,17 @@ tree_YRI_LD.dump("trees/tree_YRI_LD_nofilt.hdf")
 
 EUR_other_LD = []
 
-for ind in np.random.choice(EUR_other.index, size=N_LD, replace=False):
+inds = np.random.choice(EUR_other.index, size=N_LD, replace=False)
+for ind in inds:
 	EUR_other_LD.append(EUR_other.loc[ind,2])
 	EUR_other_LD.append(EUR_other.loc[ind,3])
 
-samps_b4_gwas = np.array(tree_other.samples()).astype(np.int32)
+samps_b4_gwas = tree_other.samples()
 
-EUR_other_GWAS = np.delete(samps_b4_gwas,np.array(EUR_other_LD+YRI_other_LD).astype(np.int32))
+all_LD = np.array(EUR_other_LD+YRI_other_LD).astype(int)
 
+
+EUR_other_GWAS = np.array([samp for samp in samps_b4_gwas if samp not in all_LD])
 tree_EUR_LD = tree_other.simplify(samples=EUR_other_LD, filter_sites = False)
 tree_EUR_GWAS = tree_other.simplify(samples=EUR_other_GWAS, filter_sites=False)
 

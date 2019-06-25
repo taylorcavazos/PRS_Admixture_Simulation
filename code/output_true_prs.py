@@ -114,7 +114,7 @@ def main(path_tree,m,h2,outfile_prefix,iters,n_admix,admix_vcf=None):
             f.create_dataset("G",(n_all,),dtype=float,data=G_ad)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Simulation of population trees")
+    parser = argparse.ArgumentParser(description="Calculates true prs")
     parser.add_argument("--tree",help="path to tree file for creating true PRS", type=str, 
         default="trees/tree_CEU_GWAS_nofilt.hdf")
     parser.add_argument("--numADMIX", help="number of ADMIX individuals", type=int, default=5000)
@@ -125,5 +125,5 @@ if __name__ == "__main__":
         type=str,default="admixed_data/output/admix_afr_amer.query.vcf")
 
     args = parser.parse_args()
-    main(args.tree, args.m, args.h2, "true_prs/m_{}_h2_{}".format(args.m, args.h2), args.iters,args.numADMIX, 
+    main(args.tree, args.m, args.h2, "true_prs/prs_m_{}_h2_{}".format(args.m, args.h2), args.iters,args.numADMIX, 
         admix_vcf = args.admixVCF)
