@@ -31,10 +31,11 @@ def main(f, m, h2):
     num_case = int(len(ceu_inds)*0.05)
     print("Number of expected cases/controls = {}".format(num_case))
 
-    labels_case = ceu_inds[np.argsort(ceu_G_plus_E)][:num_case]
+    sorted_risk = np.argsort(ceu_G_plus_E)[::-1]
+    labels_case = ceu_inds[sorted_risk[:num_case]]
 
     print("Number of cases found = {}".format(len(labels_case)))
-    labels_control = ceu_inds[np.argsort(ceu_G_plus_E)][num_case:]
+    labels_control = ceu_inds[sorted_risk[num_case:]]
 
     train_controls = np.random.choice(labels_control, size=num_case, replace=False)
     print("Number of controls found = {}".format(len(train_controls)))

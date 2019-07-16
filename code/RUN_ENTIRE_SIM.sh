@@ -32,15 +32,20 @@ for it in {1..1}; do
 	python ../../code/output_true_prs.py --m 1000 --h2 0.67 --numADMIX 50 --iters 2
 
 ################################# CHOOSE CASES/CONTROLS #################################
+	
 	echo "Splitting cases and controls"
 	python ../../code/split_case_control.py --m 1000 --h2 0.67
 
-################################# CALCULATE/ FILTER MAF #################################
-
 ################################# CALCULATE SUMMARY STATISTICS #################################
+	
+	echo "Computing summary statistics"
+	python ../../code/run_compute_sum_stats.py --m 1000 --h2 0.67
 
 ################################# CREATE EMPIRICAL PRS #################################
-
+	
+	echo "Running empricial prs"
+	python ../../code/output_emp_prs.py --m 1000 --h2 0.67
+	
 done
 
 # EXTEND TO LOOP THROUGH H2 AND M

@@ -1,4 +1,5 @@
 import numpy as np, pandas as pd
+import seaborn as sns, matplotlib.pyplot as plt
 import tqdm,time,msprime,h5py
 from multiprocessing import Pool, Process, Manager
 from functools import partial
@@ -10,31 +11,28 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from itertools import islice, count
 import sys, argparse, os
-import tskit
 
 def return_diploid_genos(tree,variant):
     genos_diploid = np.sum(variant.reshape([1,int(tree.num_samples/2),2]),axis=-1)
     return genos_diploid
 
-def find_ld_sites(tree_sequence,
+def find_ld_sites(tree_sequence, 
                   focal_vars,
-                  var2mut_dict,mut2var_dict,
-                  max_distance=1e6,
-                  r2_threshold=0.5,
+                  var2mut_dict,mut2var_dict, 
+                  max_distance=1e6, 
+                  r2_threshold=0.5, 
                   num_threads=16):
     results = {}
     num_threads = min(num_threads, len(focal_vars))
 
     def thread_worker(thread_index):
-        # print("Starting LD calculator")
         ld_calc = msprime.LdCalculator(tree_sequence)
-        chunk_size = int(math.ceil(len(focal_vars) / num_threads))
+        chunk_size = int(math.ceil(len(focal_vars) / num_threads)) 
         start = thread_index * chunk_size
-        # print("looping")
         for focal_var in focal_vars[start: start + chunk_size]:
-            focal_mutation = var2mut_dict.get(focal_var)
-            # focal_mutation = focal_var
-            # np.seterr(under='ignore')
+            focal_mutation = focal_var
+            # focal_mutation = var2mut_dict.get(focal_var)
+            np.seterr(under='ignore')
             a = ld_calc.get_r2_array(
                 focal_mutation, max_distance=max_distance,
                 direction=msprime.REVERSE)
@@ -46,22 +44,20 @@ def find_ld_sites(tree_sequence,
             a[np.isnan(a)] = 0
             fwd_indexes = focal_mutation + np.nonzero(a >= r2_threshold)[0] + 1
             indexes = np.concatenate((rev_indexes[::-1], fwd_indexes))
-            indexes = [mut2var_dict.get(ind) for ind in indexes if mut2var_dict.get(ind)!=None]
-            results[mut2var_dict.get(focal_mutation)] = indexes
-            # results[focal_mutation] = indexes
-
-
+            # results[mut2var_dict.get(focal_mutation)] = indexes
+            results[focal_mutation] = indexes
+            
     threads = [
     threading.Thread(target=thread_worker, args=(j,)) for j in range(num_threads)]
-    for t in threads:
+    for t in threads: 
         t.start()
     for t in threads:
-        t.join()
+        t.join() 
     return results
 
 def ld_clump(sorted_vars, ld_struct):
     clumped_prs = [sorted_vars[0]]
-
+    
     for v in range(1, len(sorted_vars)):
         add = True
         i = 0
@@ -135,12 +131,19 @@ def main(tree_path, tree_ld_path, p_thresh, sum_stats,vcf_file=None,m=1000,h2=0.
     tree_LD_filt = tree_LD.simplify(filter_sites=True)
     prs_vars = sum_stats[sum_stats["p-value"] < p_thresh].sort_values(by=["p-value"]).index
     prs_vars_ld_pres = [var for var in prs_vars if var in var2mut.keys()]
-    ld_struct = find_ld_sites(tree_LD_filt,prs_vars_ld_pres,var2mut,mut2var)
+    print("Number of variants before LD clump is {}".format(len(prs_vars_ld_pres)))
+    ld_struct = find_ld_sites(tree_LD_filt,prs_vars_ld_pres,var2mut,mut2var,r2_threshold=r2)
 
+    #if os.path.isfile("emp_prs/prs_vars_{}_r2_0.5.txt".format(p_thresh)): 
+    #    clumped_prs_vars = np.array(open("emp_prs/prs_vars_{}_r2_0.5.txt".format(p_thresh)).read().splitlines()).astype(int)
+    #else: clumped_prs_vars = ld_clump(prs_vars_ld_pres,ld_struct)
     clumped_prs_vars = ld_clump(prs_vars_ld_pres,ld_struct)
-    np.savetxt("emp_prs/clumped_prs_vars_m_{}_h2_{}_ld_{}_r2_{}_p{}.txt".format(m,h2,tree_ld_path[11:14],r2,p_thresh),clumped_prs_vars)
     print("Number of indendent signals is {}".format(len(clumped_prs_vars)),flush=True)
-     # if type(vcf_file) != type(None):
+    np.savetxt("emp_prs/clumped_prs_vars_m_{}_h2_{}_ld_{}_r2_{}_p{}.txt".format(m,h2,tree_ld_path[11:14],r2,p_thresh),clumped_prs_vars)
+    print("Computing empirical PRS",flush=True)
+    time.sleep(1)
+
+    # if type(vcf_file) != type(None):
     #     sample_ids_admix = pd.read_csv("admixed_data/output/admix_afr_amer.prop.anc",sep="\t",index_col=0).index
     #     X_emp_admix = calc_prs_vcf(vcf_file,sum_stats,clumped_prs_vars,n_admix=len(sample_ids_admix))
         
@@ -159,20 +162,19 @@ def main(tree_path, tree_ld_path, p_thresh, sum_stats,vcf_file=None,m=1000,h2=0.
     #         f.create_dataset("labels",(n_all,),data=np.array(sample_ids).astype("S"))
     #         f.create_dataset("X",(n_all,),dtype=float,data=X_emp_all)
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Calculates empirical prs")
     parser.add_argument("--tree",help="path to tree file for creating true PRS", type=str, 
         default="trees/tree_CEU_GWAS_nofilt.hdf")
-    parser.add_argument("--treeLD", help="path to tree used for LD", type=str, default="trees/tree_all.hdf")
+    parser.add_argument("--treeLD", help="path to tree used for LD", type=str, default="trees/tree_CEU_LD_nofilt.hdf")
     parser.add_argument("--m",help="number of causal variants", type=int, default=1000)
     parser.add_argument("--h2",help="heritability", type=float, default=0.67)
-    parser.add_argument("--pval", help="p-value for cutoff", type=float, default=0.00000005)
     parser.add_argument("--r2", help="p-value for cutoff", type=float, default=0.2)
+    parser.add_argument("--pval", help="p-value for cutoff", type=float, default=0.01)
     parser.add_argument("--admixVCF", help="VCF file for admixed population",
         type=str,default="admixed_data/output/admix_afr_amer.query.vcf")
 
     args = parser.parse_args()
     sum_stats =pd.read_csv("emp_prs/comm_maf_0.01_sum_stats_m_{}_h2_{}.txt".format(args.m,args.h2),sep="\t",index_col=0)
     sum_stats.loc[sum_stats.OR==0,"OR"] = 1
-    main(args.tree,args.treeLD,args.pval,sum_stats,vcf_file=args.admixVCF,m=args.m, h2=args.h2, r2=args.r2)
+    main(args.tree,args.treeLD,args.pval,sum_stats,vcf_file=args.admixVCF,m=args.m, h2=args.h2,r2=args.r2)
