@@ -1,2 +1,0 @@
-Finding LD
-Number of indendent signals is 25268

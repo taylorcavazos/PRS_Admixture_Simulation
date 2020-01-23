@@ -1,5 +1,0 @@
-Finding LD
-Number of indendent signals is 964
-Computing empirical PRS
-Calculating emprirical PRS tree
-Calculating empirical PRS vcf
