@@ -57,27 +57,22 @@ def _simulate_out_of_afr(N_CEU, N_YRI, N_CHB, N_MATE, rmap_file, prefix, chrom):
 
 	rmap = msprime.RecombinationMap.read_hapmap(rmap_file)
 	tree = _out_of_africa(N_CEU, N_YRI, N_CHB, rmap)
-	print(tree.num_samples)
 	sample_map = _write_sample_map(tree, N_CEU, N_YRI, N_CHB)
 
 	tree.dump(prefix+"trees/tree_all.hdf")
 	sample_map.to_csv(prefix+"trees/sample_map_all.txt",header=False,sep="\t",index=False)
 	mate_samples = _extract_samples_for_admixture(sample_map,tree,N_MATE,prefix,chrom)
-	print(len(mate_samples))
 
 	all_data = np.array(tree.samples()).astype(np.int32)
-	print(len(all_data))
 	other_samps = [ind for ind in all_data if ind not in mate_samples]
 	tree_other = tree.simplify(samples = other_samps, filter_sites=False)
 	sample_map_other = _write_sample_map(tree_other,N_CEU-N_MATE,N_YRI-N_MATE,N_CHB)
-	ceu_other_samples = list(sample_map_other[sample_map_other.iloc[:,1]=="CEU"].index)
+	ceu_other_samples = tree_other.samples(population_id=1)
 	tree_ceu_gwas = tree_other.simplify(samples=ceu_other_samples,filter_sites=False)
 	tree_ceu_gwas.dump(prefix+"trees/tree_CEU_GWAS_nofilt.hdf")
-	yri_other_samples = list(sample_map_other[sample_map_other.iloc[:,1]=="YRI"].index)
+	yri_other_samples = tree_other.samples(population_id=0)
 	tree_yri_gwas = tree_other.simplify(samples=yri_other_samples,filter_sites=False)
 	tree_yri_gwas.dump(prefix+"trees/tree_YRI_GWAS_nofilt.hdf")
-	print(tree_ceu_gwas.num_samples)
-	print(tree_yri_gwas.num_samples)
 	return
 
 def _extract_samples_for_admixture(sample_map,tree,N_MATE,prefix,chrom,N_CHB=0):

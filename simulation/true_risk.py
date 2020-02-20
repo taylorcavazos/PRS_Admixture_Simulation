@@ -45,7 +45,7 @@ def simulate_true_prs(m,h2,n_admix,prefix="output/sim1/",
     prs_comb = np.concatenate((prs_CEU,prs_YRI,prs_admix),axis=None)
 
     prs_norm, sample_ids = _write_true_prs(tree_CEU,tree_YRI,m,h2,prs_comb,all_effects,prefix,samples_admix)
-    _split_case_control_all_pops(h2,prs_norm, sample_ids)
+    _split_case_control_all_pops(h2,prs_norm, sample_ids, n_admix)
 
     return
 
@@ -94,8 +94,6 @@ def _summarize_true_prs(X,h2):
     return X,Zx,G
 
 def _write_true_prs(tree_ceu,tree_yri,m,h2,prs,effects,prefix,sample_ids_admix):
-    print(tree_ceu.num_samples/2)
-    print(tree_yri.num_samples/2)
     sample_ids_eur = ["ceu_{}".format(i) for i in range(0,int(tree_ceu.num_samples/2))]
     sample_ids_yri = ["yri_{}".format(i) for i in range(0,int(tree_yri.num_samples/2))]
 
@@ -113,7 +111,7 @@ def _write_true_prs(tree_ceu,tree_yri,m,h2,prs,effects,prefix,sample_ids_admix):
         f.create_dataset("effects",(tree_ceu.num_sites,),dtype=float,data=effects)
     return G, sample_ids
 
-def _split_case_control(G,E,inds):
+def _split_case_control(G,E,inds,N_ADMIX):
     G_plus_E = (G+E)[inds]
     num_case = int(len(inds)*0.05)
     sorted_risk = np.argsort(G_plus_E)[::-1]
@@ -121,7 +119,7 @@ def _split_case_control(G,E,inds):
     labels_control = inds[sorted_risk[num_case:]]
     train_controls = np.random.choice(labels_control, size=num_case, replace=False)
     remainder = [ind for ind in labels_control if ind not in train_controls]
-    testing = np.random.choice(remainder, size=int(num_case/2), replace=False)
+    testing = np.random.choice(remainder, size=N_ADMIX, replace=False)
     return train_case,train_controls,testing
 
 def _output_report_case_control(data):
@@ -137,7 +135,7 @@ def _output_report_case_control(data):
     print("Testing admixed (CEU+YRI) = {}".format(len(data[6])))
     print("-----------------------------")
 
-def _split_case_control_all_pops(h2,G,labels):
+def _split_case_control_all_pops(h2,G,labels,N_ADMIX):
     e = np.random.normal(loc=0, scale=(1-h2), size=int(G.shape[0]))
     Ze = (e - np.mean(e))/np.std(e)
     E = np.sqrt(1-h2)*Ze
@@ -148,8 +146,8 @@ def _split_case_control_all_pops(h2,G,labels):
         elif "yri" in lab: yri_inds = np.append(yri_inds,[ind])
         else: admix_inds = np.append(admix_inds,[ind])
     
-    train_case_ceu,train_control_ceu,test_ceu = _split_case_control(G,E,ceu_inds)
-    train_case_yri,train_control_yri,test_yri = _split_case_control(G,E,yri_inds)
+    train_case_ceu,train_control_ceu,test_ceu = _split_case_control(G,E,ceu_inds,N_ADMIX)
+    train_case_yri,train_control_yri,test_yri = _split_case_control(G,E,yri_inds,N_ADMIX)
     test_w_admix = np.concatenate((test_ceu,test_yri,admix_inds),axis=None)
 
     _output_report_case_control([train_case_ceu,train_control_ceu,

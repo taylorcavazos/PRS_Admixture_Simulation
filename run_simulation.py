@@ -5,7 +5,7 @@ import os
 
 def main(sim):
 	# PART 0: CREATE DIRECTORIES NEEDED FOR SIMULATION
-	os.system("mkdir -p output/sim{}".format(sim)+"/{trees,admixed_data/{input,output},true_prs,emp_prs,plots}")
+	os.system("mkdir -p output/sim{}".format(sim)+"/{trees,admixed_data/{input,output},true_prs,emp_prs,plots,summary}")
 	
 	# PART 1: SIMULATE POPULATIONS
 
