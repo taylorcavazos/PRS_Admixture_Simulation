@@ -6,7 +6,7 @@ import os
 import gzip
 
 def simulate_populations(N_CEU, N_YRI, N_MATE, N_ADMIX, rmap_file, N_CHB=0,
-						prefix="../output/sim1/",chrom="20"):
+						prefix="output/sim1/",chrom="20"):
 	"""
 	Function to simulate European and African populations based on
 	msprime's out_of_africa model and Admixed (European + African). 
@@ -39,13 +39,14 @@ def simulate_populations(N_CEU, N_YRI, N_MATE, N_ADMIX, rmap_file, N_CHB=0,
 	return None
 
 def _simulate_admix(N_ADMIX,prefix):
-	os.system(f"./../../rfmix/simulate -f {prefix}admixed_data/input/ceu_yri_genos.vcf.gz -m {prefix}admixed_data/input/ceu_yri_map.txt \
-				-G 8 -c 20 -g ../required_data/genetic_map_GRCh37_chr20_fix.txt -o {prefix}admixed_data/output/admix_afr_amer \
+	os.system(f"./../rfmix/simulate -f {prefix}admixed_data/input/ceu_yri_genos.vcf.gz -m {prefix}admixed_data/input/ceu_yri_map.txt \
+				-G 8 -c 20 -g required_data/genetic_map_GRCh37_chr20_rfmix.txt -o {prefix}admixed_data/output/admix_afr_amer \
 				-s {N_ADMIX} --growth-rate=1.5")
 	return
 
 def _simulate_out_of_afr(N_CEU, N_YRI, N_CHB, N_MATE, rmap_file, prefix, chrom):
 
+	print("--------------------")
 	print("Population Breakdown")
 	print("--------------------")
 	print("Number CEU: {}".format(N_CEU))
@@ -56,13 +57,16 @@ def _simulate_out_of_afr(N_CEU, N_YRI, N_CHB, N_MATE, rmap_file, prefix, chrom):
 
 	rmap = msprime.RecombinationMap.read_hapmap(rmap_file)
 	tree = _out_of_africa(N_CEU, N_YRI, N_CHB, rmap)
+	print(tree.num_samples)
 	sample_map = _write_sample_map(tree, N_CEU, N_YRI, N_CHB)
 
 	tree.dump(prefix+"trees/tree_all.hdf")
 	sample_map.to_csv(prefix+"trees/sample_map_all.txt",header=False,sep="\t",index=False)
 	mate_samples = _extract_samples_for_admixture(sample_map,tree,N_MATE,prefix,chrom)
-	
+	print(len(mate_samples))
+
 	all_data = np.array(tree.samples()).astype(np.int32)
+	print(len(all_data))
 	other_samps = [ind for ind in all_data if ind not in mate_samples]
 	tree_other = tree.simplify(samples = other_samps, filter_sites=False)
 	sample_map_other = _write_sample_map(tree_other,N_CEU-N_MATE,N_YRI-N_MATE,N_CHB)
@@ -72,7 +76,8 @@ def _simulate_out_of_afr(N_CEU, N_YRI, N_CHB, N_MATE, rmap_file, prefix, chrom):
 	yri_other_samples = list(sample_map_other[sample_map_other.iloc[:,1]=="YRI"].index)
 	tree_yri_gwas = tree_other.simplify(samples=yri_other_samples,filter_sites=False)
 	tree_yri_gwas.dump(prefix+"trees/tree_YRI_GWAS_nofilt.hdf")
-
+	print(tree_ceu_gwas.num_samples)
+	print(tree_yri_gwas.num_samples)
 	return
 
 def _extract_samples_for_admixture(sample_map,tree,N_MATE,prefix,chrom,N_CHB=0):
@@ -146,7 +151,7 @@ def _out_of_africa(N_CEU, N_YRI, N_CHB, rmap):
 	    msprime.PopulationConfiguration(
 	        sample_size=(2*N_CEU), initial_size=N_EU, growth_rate=r_EU),
 	    msprime.PopulationConfiguration(
-	        sample_size=N_CHB, initial_size=N_AS, growth_rate=r_AS)
+	        sample_size=(2*N_CHB), initial_size=N_AS, growth_rate=r_AS)
 	]
 	migration_matrix = [
 	    [      0, m_AF_EU, m_AF_AS],
