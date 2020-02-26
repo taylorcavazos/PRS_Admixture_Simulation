@@ -37,43 +37,33 @@ def simulate_true_prs(m,h2,n_admix,prefix="output/sim1/",
     """
     tree_CEU = msprime.load(prefix+path_tree_CEU)
     tree_YRI = msprime.load(prefix+path_tree_YRI)
-    all_effects = _compute_effects(m, h2,tree_CEU.num_sites)
+    var_dict = _compute_effects(m, h2,tree_CEU.num_sites)
     
-    prs_CEU = _calc_prs_tree(all_effects,h2,tree_CEU)
-    prs_YRI = _calc_prs_tree(all_effects,h2,tree_YRI)
-    prs_admix,samples_admix = _calc_prs_vcf(prefix+vcf_file,all_effects,n_admix)
+    prs_CEU = calc_prs_tree(var_dict,tree_CEU)
+    prs_YRI = calc_prs_tree(var_dict,tree_YRI)
+    prs_admix,samples_admix = calc_prs_vcf(prefix+vcf_file,var_dict,n_admix)
     prs_comb = np.concatenate((prs_CEU,prs_YRI,prs_admix),axis=None)
 
-    prs_norm, sample_ids = _write_true_prs(tree_CEU,tree_YRI,m,h2,prs_comb,all_effects,prefix,samples_admix)
-    _split_case_control_all_pops(h2,prs_norm, sample_ids, n_admix)
+    prs_norm, sample_ids = _write_true_prs(tree_CEU,tree_YRI,m,h2,
+                                prs_comb,np.array(list(var_dict.values())),
+                                prefix,samples_admix)
+    _split_case_control_all_pops(m,h2,prs_norm, sample_ids, n_admix,prefix)
 
     return
 
-def _return_diploid_genos(variant,tree):
+def return_diploid_genos(variant,tree):
     genos_diploid = np.sum(variant.reshape([1,int(tree.num_samples/2),2]),axis=-1)
     return genos_diploid
 
-def _compute_effects(m, h2,num_sites):
-    causal_inds = np.linspace(0, num_sites, m, dtype=int,endpoint=False)
-    effect_sizes = np.random.normal(loc=0, scale=(h2/m),size=m)
-    
-    all_effects = np.zeros(num_sites)
-    np.put(all_effects,causal_inds,effect_sizes)
-    return all_effects
-
-
-def _calc_prs_tree(all_effects, h2, tree):
-    non0 = np.where(all_effects!=0)[0]
+def calc_prs_tree(var_dict,tree):
     X_sum = 0
-    i = 0
     for variant in tree.variants():
-        if variant.site.id in non0:
-            var_dip = _return_diploid_genos(variant.genotypes,tree)
-            X_sum+=np.dot(var_dip.T, all_effects[i])
-        i+=1
+        if variant.site.id in var_dict.keys():
+            var_dip = return_diploid_genos(variant.genotypes,tree)
+            X_sum+=np.dot(var_dip.T, var_dict[variant.site.id])
     return X_sum
 
-def _calc_prs_vcf(vcf_file,effects,n_admix):
+def calc_prs_vcf(vcf_file,var_dict,n_admix):
     prs = np.zeros(n_admix)
     with open(vcf_file) as f:
         ind=0
@@ -81,12 +71,17 @@ def _calc_prs_vcf(vcf_file,effects,n_admix):
             if line[:6]== "#CHROM":
                 sample_ids_admix = line.split("\n")[0].split("\t")[9:]
             if line[0] != "#":
-                if effects[ind] != 0:
-                    data = line.split("\t")[9:]
+                if ind in var_dict.keys():
+                    data = line.split("\n")[0].split("\t")[9:]
                     genotype = np.array([np.array(hap.split("|")).astype(int).sum() for hap in data])
-                    prs=prs+(genotype*effects[ind])
+                    prs=prs+(genotype*var_dict[ind])
                 ind+=1
     return prs, sample_ids_admix
+
+def _compute_effects(m, h2,num_sites):
+    causal_inds = np.linspace(0, num_sites, m, dtype=int,endpoint=False)
+    effect_sizes = np.random.normal(loc=0, scale=(h2/m),size=m)
+    return dict(zip(causal_inds,effect_sizes))
 
 def _summarize_true_prs(X,h2):
     Zx = (X-np.mean(X))/np.std(X)
@@ -108,7 +103,7 @@ def _write_true_prs(tree_ceu,tree_yri,m,h2,prs,effects,prefix,sample_ids_admix):
         f.create_dataset("X",(n_all,),dtype=float,data=X)
         f.create_dataset("Zx",(n_all,),dtype=float,data=Zx)
         f.create_dataset("G",(n_all,),dtype=float,data=G)
-        f.create_dataset("effects",(tree_ceu.num_sites,),dtype=float,data=effects)
+        f.create_dataset("effects",effects.shape,dtype=float,data=effects)
     return G, sample_ids
 
 def _split_case_control(G,E,inds,N_ADMIX):
@@ -135,7 +130,7 @@ def _output_report_case_control(data):
     print("Testing admixed (CEU+YRI) = {}".format(len(data[6])))
     print("-----------------------------")
 
-def _split_case_control_all_pops(h2,G,labels,N_ADMIX):
+def _split_case_control_all_pops(m,h2,G,labels,N_ADMIX,prefix):
     e = np.random.normal(loc=0, scale=(1-h2), size=int(G.shape[0]))
     Ze = (e - np.mean(e))/np.std(e)
     E = np.sqrt(1-h2)*Ze
@@ -154,4 +149,10 @@ def _split_case_control_all_pops(h2,G,labels,N_ADMIX):
                                 train_case_yri,train_control_yri,
                                 test_ceu,test_yri,admix_inds])
 
-
+    with h5py.File(prefix+'true_prs/prs_m_{}_h2_{}.hdf5'.format(m,h2), 'a') as f:
+        f.create_dataset("train_cases_ceu",train_case_ceu.shape,dtype=int,data=train_case_ceu)
+        f.create_dataset("train_controls_ceu",train_control_ceu.shape,dtype=int,data=train_control_ceu)
+        f.create_dataset("train_cases_yri",train_case_yri.shape,dtype=int,data=train_case_yri)
+        f.create_dataset("train_controls_yri",train_control_yri.shape,dtype=int,data=train_control_yri)
+        f.create_dataset("test_data",test_w_admix.shape,dtype=int,data=test_w_admix)
+        f.create_dataset("E",E.shape,dtype=float,data=E)

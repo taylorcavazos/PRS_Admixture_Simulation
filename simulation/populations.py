@@ -39,6 +39,12 @@ def simulate_populations(N_CEU, N_YRI, N_MATE, N_ADMIX, rmap_file, N_CHB=0,
 	return None
 
 def _simulate_admix(N_ADMIX,prefix):
+	"""
+	The simulation software used to create admixed individuals two reference populations
+	was extracted from the rfmix [github repo](https://watermark.silverchair.com/kwy228.pdf?token=AQECAHi208BE49Ooan9kkhW_Ercy7Dm3ZL_9Cf3qfKAc485ysgAAAnIwggJuBgkqhkiG9w0BBwagggJfMIICWwIBADCCAlQGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMWrEIYqOMT4j4y3oRAgEQgIICJbzJZUkC_VBFfnaB4ssmvU42YSZfaWXAcQ8i0dEW6R7w-0pI_1x6MM20L9Pc1lblAP8LOpUsRF3VwIB9SZzOCN1HRt5XW3M0C5WLtHH_Fx0pVDblNY5uPbidF7xSgnNL98lzxJvecrBdsZjatOd-_xAqj84s87ksnw3ddfSY12xU7CgYEg-u17uEkBXnyacXDobbAj-Eu3m-RTpsdd3XB_r7YmGla8qk5FPNyWNQbNyo1MuUP9bDaNK7XOQCJ7veGNMRUM5K9z025V5rtr0XbIzzeskRwHyfJpe57XRymieAJhen5GTBzl9iq0sgaEtXZ7CvUHpmJSLWGeaTJQQWO39fsRpUUaJWypIas6Kioa-PYnG_TZqjqFjWBC6LLhrLdiv7Yr6YFq452RBqy-p2tEvrqmEU97gxVX1Rtdfv2ke4MN-Mf7WLaTAnIZgknNeg2iWSYgIsFOdDE62xNgf0rlqa9PGr7wYbgdE353jNDVsQ3jW-glbM5dwoQCiLkCOAsrxW7v966Ai67X6FZPXyYwehK_QOowx-9O2d3LpxywV-b5KuYCooBPEU1zlL8G5EBVuK6HvOUOKzvHGxzvLUXoDmUuF057JcO_CVbqoKGisPj6M_mQVuXwtu56q6KUkuwdMk2jwtzOknYyGbtr-FcLuh72S85VuJ9xLYCtXb7_eq4E7rtTjXXMwDvUmQDhPjCPYbOclEGsjI3K4sR9Z4tXskR1kE8w) 
+	of Mark Koni Wright. The simulate function was used in Maples et. al. 2013 to test
+	their rfmix software's ability to perform local ancestry inference.
+	"""
 	os.system(f"./../rfmix/simulate -f {prefix}admixed_data/input/ceu_yri_genos.vcf.gz -m {prefix}admixed_data/input/ceu_yri_map.txt \
 				-G 8 -c 20 -g required_data/genetic_map_GRCh37_chr20_rfmix.txt -o {prefix}admixed_data/output/admix_afr_amer \
 				-s {N_ADMIX} --growth-rate=1.5")
