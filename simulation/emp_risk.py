@@ -42,124 +42,119 @@ def create_emp_prs(m,h2,n_admix,prefix,p=0.01,r2=0.2,
         VCF file path with admixed genotypes
 
     """
-    trees,sumstats,train_cases,train_controls = _load_data(snp_weighting,snp_selection,path_tree_CEU,
+    trees,sumstats,train_cases,train_controls,labels = _load_data(snp_weighting,snp_selection,path_tree_CEU,
                                                                   path_tree_YRI,prefix,m,h2,
                                                                   num2decrease)
     snps = _select_variants(sumstats[snp_selection],trees[snp_selection],m,h2,
                            p,r2,snp_selection,prefix,ld_distance,num_threads)
-
-    # if snp_weighting != "la":
-    #     weights = np.log(sumstats[snp_weighting].reindex(snps,fill_value=1)["OR"])
-    #     prs_ceu = calc_prs_tree(dict(zip(snps,weights)),trees[0])
-    #     prs_yri = calc_prs_tree(dict(zip(snps,weights)),trees[1])
-    #     prs_admix = calc_prs_vcf(prefix+vcf_file,dict(zip(snps,weights)),n_admix)
-    #     prs_all = np.concatenate((prs_ceu,prs_yri,prs_admix),axis=None)
-
-    # else:
-    #     return
-    return
-    # Check weighting and snp selection are proper values or exit program
-    # print(f"\nConstruction of empirical PRS with {snp_selection.upper()} selected snps and {snp_weighting.upper()} based weighting\n\n")
-    # trees,sumstats,train_cases,train_controls,labels = _load_data(snp_weighting,path_tree_CEU,path_tree_YRI,prefix)
-    # pops = ["ceu","yri"]
-    # # Need to allow for different population to be used for snp_selection... should probably just compute both sum stats even if they aren't used right away
-    # # Also need to allow samples to be smaller for summary statistics
-    # if snp_weighting in pops:
-    #     # sumstats = _compute_summary_stats(m,h2,trees[pops.index(snp_weighting)],
-    #     #                                 train_cases,train_controls,snp_weighting,prefix)
-    #     snps = _select_variants(sumstats,trees[pops.index(snp_selection)],m,h2,p,r2,
-    #                             snp_selection,prefix,max_distance,num_threads)
-    #     weights = np.log(sumstats.loc[snps,"OR"])
-
-    #     prs_ceu = calc_prs_tree(dict(zip(snps,weights)),trees[0])
-    #     prs_yri = calc_prs_tree(dict(zip(snps,weights)),trees[1])
-    #     prs_admix = calc_prs_vcf(prefix+vcf_file,dict(zip(snps,weights)),n_admix)
-    #     prs_all = np.concatenate((prs_ceu,prs_yri,prs_admix),axis=None)
-
-    # else:
-    #     # sumstats_ceu = _compute_summary_stats(m,h2,trees[0],train_cases[0],train_controls[0],"ceu",prefix)
-    #     # sumstats_yri = _compute_summary_stats(m,h2,trees[1],train_cases[1],train_controls[1],"yri",prefix) 
-    #     # sumstats_all = [sumstats_ceu,sumstats_yri]
-    #     snps = _select_variants(sum_stats_all[pops.index(snp_selection)],trees[pops.index(snp_selection)],m,h2,p,r2,
-    #                             snp_selection,prefix,max_distance,num_threads)
-
-    #     if snp_weigting == "meta":
-    #         weights = _perform_meta()
-    #         prs_ceu = calc_prs_tree(dict(zip(snps,weights)),trees[0])
-    #         prs_yri = calc_prs_tree(dict(zip(snps,weights)),trees[1])
-    #         prs_admix = calc_prs_vcf(vcf_file,dict(zip(snps,weights)),n_admix)
-    #         prs_all = np.concatenate((prs_ceu,prs_yri,prs_admix),axis=None)
-
-    #     else:
-    #         prs_ceu = None
-    #         prs_yri = None
-    #         prs_admix = None
-    #         prs_all = np.concatenate((prs_ceu,prs_yri,prs_admix),axis=None)
-
-    # _write_output(prs_all,labels,prefix,m,h2,r2,p,snp_selection,snp_weighting,num_cases_weight,num_cases_selection)
-    # return
-
-# def calc_prs_vcf_LA(): 
-#     prs = np.zeros(n_admix)
-#     with open(vcf_file) as f:
-#         ind=0
-#         for line in f:
-#             if line[:6]== "#CHROM":
-#                 sample_ids_admix = line.split("\n")[0].split("\t")[9:]
-#             if line[0] != "#":
-#                 if ind in var_dict.keys():
-#                     data = line.split("\n")[0].split("\t")[9:]
-#                     genotype = np.array([np.array(hap.split("|")).astype(int).sum() for hap in data])
-#                     prs=prs+(genotype*var_dict[ind])
-#                 ind+=1
-#     return prs
-
-def _load_data(weight,selection,path_tree_CEU,path_tree_YRI,prefix,m,h2,num2decrease):
-    pop_dict = {"ceu":["ceu"],"yri":["yri"],"meta":["ceu","yri"],"la":["ceu","yri"]}
-    pops2load = set(pop_dict.get(weight)+pop_dict.get(selection))
-
-    trees = {"ceu":msprime.load(prefix+path_tree_CEU),"yri":msprime.load(prefix+path_tree_YRI)}
     
-    if num2decrease == None:
-        f = h5py.File(prefix+'true_prs/prs_m_{}_h2_{}.hdf5'.format(1000,0.5), 'r')
-        train_cases = {"ceu":f["train_cases_ceu"][()],"yri":f["train_cases_yri"][()]-200000}
-        train_controls = {"ceu":f["train_controls_ceu"][()],"yri":f["train_controls_yri"][()]-200000}
-        f.close()
+    _ancestry_snps_admix(snps,prefix,m,h2,r2,p,snp_selection)
+
+    if os.path.isfile(f"{prefix}emp_prs/emp_prs_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{snp_selection}_"+\
+                      f"snps_{len(train_cases[snp_selection])}cases_{snp_weighting}_weights_"+\
+                      f"{len(train_cases[snp_weighting])}cases.hdf5"):
+        print(f"\nEmpirical PRS for iteration={prefix.split('sim')[1].split('/')[0]} and provided parameters exists")
+        print(f"If you would like to overwrite, remove {prefix}emp_prs/emp_prs_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{snp_selection}_snps_{len(train_cases[snp_selection])}cases_{snp_weighting}_weights_{len(train_cases[snp_weighting])}cases.hdf5")
+        return
+
     else:
-        sub_yri_case,sub_yri_control = _decrease_training_samples(m,h2,"yri",num2decrease,prefix)
-        f = h5py.File(prefix+'true_prs/prs_m_{}_h2_{}.hdf5'.format(1000,0.5), 'r')
-        train_cases = {"ceu":f["train_cases_ceu"][()],"yri":sub_yri_case-200000}
-        train_controls = {"ceu":f["train_controls_ceu"][()],"yri":sub_yri_control-200000}
-        f.close() 
-    
-    sumstats = {"ceu":None,"yri":None}
-    for pop in pops2load:
-        sumstats[pop] = _compute_summary_stats(m,h2,trees[pop],
-                                               train_cases[pop],
-                                               train_controls[pop],
-                                               pop,prefix)
-    if weight == "meta":
-        sumstats["meta"] = _perform_meta(train_cases,m,h2,prefix)
-    return trees,sumstats,train_cases,train_controls
+        print(f"Creating empricial with {snp_selection.upper()} selected snps and {snp_weighting.upper()} weights ")
+        
+        if snp_weighting != "la":
+            weights = np.log(sumstats[snp_weighting].reindex(snps,fill_value=1)["OR"])
+            print("..... for the CEU population")
+            prs_ceu = calc_prs_tree(dict(zip(snps,weights)),trees["ceu"])
+            print("..... for the YRI population")
+            prs_yri = calc_prs_tree(dict(zip(snps,weights)),trees["yri"])
+            print("..... for the admixed population")
+            prs_admix,ids_admix = calc_prs_vcf(prefix+vcf_file,dict(zip(snps,weights)),n_admix)
+            prs_all = np.concatenate((prs_ceu,prs_yri,prs_admix),axis=None)
+            _write_output(prs_all,labels,prefix,m,h2,r2,p,snp_selection,snp_weighting,
+                    len(train_cases[snp_weighting]),len(train_cases[snp_selection]))
+        else:
+            weights = {"ceu":np.log(sumstats["ceu"].reindex(snps,fill_value=1)["OR"]),
+                       "yri":np.log(sumstats["yri"].reindex(snps,fill_value=1)["OR"]),
+                       "meta":np.log(sumstats["meta"].reindex(snps,fill_value=1)["OR"])}
 
-# def _write_output(prs,labels,prefix,m,h2,r2,p,selection,weight,num_cases_weight,num_cases_selection):
-#     with h5py.File(prefix+f'emp_prs/prs_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{selection}_'\
-#                     +f'snps_{}cases_{weight}_weights_{}cases.hdf5', 'w') as f:
-#         f.create_dataset("labels",(n_all,),data=labels)
-#         f.create_dataset("X",(n_all,),dtype=float,data=prs)
-#     return
+            print("..... for the CEU population")
+            prs_ceu = calc_prs_tree(dict(zip(snps,weights["ceu"])),trees["ceu"])
+            print("..... for the YRI population")
+            prs_yri = calc_prs_tree(dict(zip(snps,weights["yri"])),trees["yri"])
+            print("..... for the admixed population")
+            
+            prs_admix,ids_admix = calc_prs_vcf_la(prefix+vcf_file,weights,snps,n_admix,m,h2,r2,p,snp_selection)
+            prs_all = np.concatenate((prs_ceu,prs_yri,prs_admix),axis=None)
+            _write_output(prs_all,labels,prefix,m,h2,r2,p,snp_selection,snp_weighting,
+                    len(train_cases[snp_weighting]),len(train_cases[snp_selection]))
+            return
+    return
+
+def calc_prs_vcf_la(vcf_file,weights,snps,n_admix,m,h2,r2,p,pop):
+    anc = pd.read_csv(f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps.result.PRS",
+                        sep="\t",index_col=0)
+    sample_ids = pd.read_csv(f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps.prop.anc.PRS",
+        sep="\t",index_col=0).index
+    prs = np.zeros(n_admix)
+
+    with open(vcf_file) as f:
+        ind=0
+        for line in f:
+            if line[0] != "#":
+                if ind in snps:
+                    data = line.split("\t")[9:]
+                    genotype = np.array([np.array(hap.split("|")).astype(int).sum() for hap in data])
+                    var_weighted=[]
+                    pos = snps.index(ind)
+                    for g in range(0,len(genotype)):
+                        if anc.loc[ind,[sample_ids[g]+".0",sample_ids[g]+".1"]].sum() > 3:
+                            var_weighted.append(genotype[g]*weights["yri"][pos])
+                        elif anc.loc[ind,[sample_ids[g]+".0",sample_ids[g]+".1"]].sum() == 3:
+                            var_weighted.append(genotype[g]*weights["meta"][pos])
+                        elif anc.loc[ind,[sample_ids[g]+".0",sample_ids[g]+".1"]].sum() < 3:
+                            var_weighted.append(genotype[g]*weights["ceu"][pos])
+                    prs=prs+np.array(var_weighted)
+                ind+=1
+    return prs
+
+def _ancestry_snps_admix(snps,prefix,m,h2,r2,p,pop):
+    if not os.path.isfile(f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps.result.PRS"):
+        with open(f"{prefix}admixed_data/output/admix_afr_amer.result") as anc:
+            print("Extracting proportion ancestry at PRS variants")
+            for ind,line in enumerate(anc):
+                if ind == 0:
+                    anc_prs = pd.DataFrame(columns=line.split("\n")[0].split("\t")[2:])
+
+                    sample_haps = line.split("\t")[2:]
+                    samples = [sample_haps[i].split(".")[0] for i in range(0,len(sample_haps),2)]
+                    anc_prop = pd.DataFrame(index=samples,columns=["Prop_CEU","Prop_YRI"])
+                    counts_YRI = np.zeros(len(samples))
+
+                elif ind-1 in snps:
+                    anc_prs.loc[ind-1,:] = line.split("\n")[0].split("\t")[2:]
+
+                    haplo_anc = np.array(line.split("\t")[2:]).astype(int)
+                    YRI_arr = haplo_anc-1
+                    line_counts_YRI = np.add.reduceat(YRI_arr, np.arange(0, len(YRI_arr), 2))
+                    counts_YRI = counts_YRI+line_counts_YRI
+        
+        anc_prop["Prop_YRI"] = counts_YRI/(2*(len(snps)-1))
+        anc_prop["Prop_CEU"] = 1-anc_prop["Prop_YRI"]
+
+        anc_prop.to_csv(f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps.prop.anc.PRS",sep="\t")
+        anc_prs.to_csv(f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps.result.PRS",sep="\t")
+    return
 
 def _perform_meta(train_cases,m,h2,prefix):
-    if not os.path.isfile(prefix+f"emp_prs/meta_m_{m}_h2_{h2}_casesCEU_{len(train_cases[0])}"+\
-                                 f"_casesYRI_{len(train_cases[1])}.txt"):
+    if not os.path.isfile(prefix+f"emp_prs/meta_m_{m}_h2_{h2}_casesCEU_{len(train_cases['ceu'])}"+ \
+                                 f"_casesYRI_{len(train_cases['yri'])}.txt"):
         print("\nPerforming a fixed_effects meta between CEU and YRI summary statistics")
-        os.system("Rscript simulation/compute_meta_sum_stats.R " +\
-                 f"{prefix}emp_prs/gwas_m_{m}_h2_{h2}_pop_ceu_cases_{len(train_cases[0])}.txt " +\
-                 f"{prefix}emp_prs/gwas_m_{m}_h2_{h2}_pop_yri_cases_{len(train_cases[1])}.txt " +\
-                 f"{prefix}emp_prs/meta_m_{m}_h2_{h2}_casesCEU_{len(train_cases[0])}_casesYRI_{len(train_cases[1])}.txt")
+        os.system("Rscript simulation/compute_meta_sum_stats.R " + \
+                 f"{prefix}emp_prs/gwas_m_{m}_h2_{h2}_pop_ceu_cases_{len(train_cases['ceu'])}.txt " + \
+                 f"{prefix}emp_prs/gwas_m_{m}_h2_{h2}_pop_yri_cases_{len(train_cases['yri'])}.txt " + \
+                 f"{prefix}emp_prs/meta_m_{m}_h2_{h2}_casesCEU_{len(train_cases['ceu'])}_casesYRI_{len(train_cases['yri'])}.txt")
     
-    return pd.read_csv(prefix+f"emp_prs/meta_m_{m}_h2_{h2}_casesCEU_{len(train_cases[0])}"+\
-                                 f"_casesYRI_{len(train_cases[1])}.txt",sep="\t",index_col=0)
+    return pd.read_csv(prefix+f"emp_prs/meta_m_{m}_h2_{h2}_casesCEU_{len(train_cases['ceu'])}"+ \
+                                 f"_casesYRI_{len(train_cases['yri'])}.txt",sep="\t",index_col=0)
 
 def _select_variants(sum_stats,tree,m,h2,p,r2,pop,prefix,max_distance,num_threads):
     print("-----------------------------------")
@@ -219,12 +214,12 @@ def _ld_clump(tree,variants,m,h2,pop,r2,p,prefix,max_distance,num_threads):
         clumped_variants = [variants[0]]
         for v in range(1,len(variants)):
             add, i = True, 0
-            while add and i < len(clumped_prs):
-                if variants[v] in ld_struct.get(clumped_prs[i]):
+            while add and i < len(clumped_variants):
+                if variants[v] in ld_struct.get(clumped_variants[i]):
                     add = False
                 i+=1
             if add: clumped_variants.append(variants[v])
-        np.savetxt(prefix+f"emp_prs/clumped_prs_vars_m_{m}_h2_{h2}_pop_{pop}_r2_{r2}_p{p}.txt")
+        np.savetxt(prefix+f"emp_prs/clumped_prs_vars_m_{m}_h2_{h2}_pop_{pop}_r2_{r2}_p{p}.txt",clumped_variants)
         return clumped_variants
     else: 
         return np.loadtxt(prefix+f"emp_prs/clumped_prs_vars_m_{m}_h2_{h2}_pop_{pop}_r2_{r2}_p{p}.txt")
@@ -310,3 +305,49 @@ def _compute_maf(tree,prefix,pop):
 
         return maf
     else: return np.loadtxt(prefix+"emp_prs/maf_{}.txt".format(pop))
+
+def _load_data(weight,selection,path_tree_CEU,path_tree_YRI,prefix,m,h2,num2decrease):
+    pop_dict = {"ceu":["ceu"],"yri":["yri"],"meta":["ceu","yri"],"la":["ceu","yri"]}
+    pops2load = set(pop_dict.get(weight)+pop_dict.get(selection))
+
+    trees = {"ceu":msprime.load(prefix+path_tree_CEU),"yri":msprime.load(prefix+path_tree_YRI)}
+    
+    if num2decrease == None:
+        f = h5py.File(prefix+'true_prs/prs_m_{}_h2_{}.hdf5'.format(1000,0.5), 'r')
+        train_cases = {"ceu":f["train_cases_ceu"][()],"yri":f["train_cases_yri"][()]-200000,
+                       "meta":np.append(f["train_cases_ceu"][()],f["train_cases_yri"][()]),
+                       "la":f["train_cases_yri"][()]}
+        train_controls = {"ceu":f["train_controls_ceu"][()],"yri":f["train_controls_yri"][()]-200000,
+                       "meta":np.append(f["train_controls_ceu"][()],f["train_controls_yri"][()]),
+                       "la":f["train_controls_yri"][()]}
+        labels_all = f["labels"][()]
+        f.close()
+    else:
+        sub_yri_case,sub_yri_control = _decrease_training_samples(m,h2,"yri",num2decrease,prefix)
+        f = h5py.File(prefix+'true_prs/prs_m_{}_h2_{}.hdf5'.format(1000,0.5), 'r')
+        train_cases = {"ceu":f["train_cases_ceu"][()],"yri":sub_yri_case-200000,
+                       "meta":np.append(f["train_cases_ceu"][()],sub_yri_case),
+                       "la":sub_yri_case}
+        train_controls = {"ceu":f["train_controls_ceu"][()],"yri":sub_yri_control-200000,
+                          "meta":np.append(f["train_controls_ceu"][()],sub_yri_control),
+                          "la":sub_yri_control}
+        labels_all = f["labels"][()]
+        f.close() 
+    
+    sumstats = {"ceu":None,"yri":None}
+    for pop in pops2load:
+        sumstats[pop] = _compute_summary_stats(m,h2,trees[pop],
+                                               train_cases[pop],
+                                               train_controls[pop],
+                                               pop,prefix)
+    if weight == "meta" or weight == "la":
+        sumstats["meta"] = _perform_meta(train_cases,m,h2,prefix)
+    return trees,sumstats,train_cases,train_controls,labels_all
+
+def _write_output(prs,labels,prefix,m,h2,r2,p,selection,weight,
+                    num_cases_weight,num_cases_selection):
+    n_all = len(labels)
+    with h5py.File(prefix+f'emp_prs/emp_prs_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{selection}_snps_{num_cases_selection}cases_{weight}_weights_{num_cases_weight}cases.hdf5', 'w') as f:
+        f.create_dataset("labels",(n_all,),data=labels)
+        f.create_dataset("X",(n_all,),dtype=float,data=prs)
+    return
