@@ -31,6 +31,12 @@ def main(sim,m,h2,weight,snp,cases_yri,outdir):
 	SIM.create_emp_prs(m, h2, N_ADMIX, prefix=f"{outdir}sim{sim}/",snp_weighting=weight,
 						snp_selection=snp,num2decrease=cases_yri)
 
+	# PART 4: SUMMARIZE RESULTS
+	if os.path.isfile()
+		print(f"Summary plots and data exist. If you would like to overwrite, remove {outdir}sim{sim}/summary/*")
+	else:
+		SIM.output_all_summary()
+
 
 parser = argparse.ArgumentParser(description="Functions for simulating European, African, and Admixed populations and testing PRS building strategies for better generalization to diverse populations. Additional parameters can be adjusted in the config.py file")
 parser.add_argument("--sim",help="Population identifier. Must give unique value if you want to run the simulation multiple times and retain outputs.", type=str, default="1")

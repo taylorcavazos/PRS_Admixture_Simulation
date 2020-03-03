@@ -45,7 +45,7 @@ def _simulate_admix(N_ADMIX,prefix):
 	of Mark Koni Wright. The simulate function was used in Maples et. al. 2013 to test
 	their rfmix software's ability to perform local ancestry inference.
 	"""
-	os.system(f"./../rfmix/simulate -f {prefix}admixed_data/input/ceu_yri_genos.vcf.gz -m {prefix}admixed_data/input/ceu_yri_map.txt \
+	os.system(f"./simulation/simulate-admixed -f {prefix}admixed_data/input/ceu_yri_genos.vcf.gz -m {prefix}admixed_data/input/ceu_yri_map.txt \
 				-G 8 -c 20 -g required_data/genetic_map_GRCh37_chr20_rfmix.txt -o {prefix}admixed_data/output/admix_afr_amer \
 				-s {N_ADMIX} --growth-rate=1.5")
 	return
