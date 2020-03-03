@@ -82,20 +82,20 @@ def create_emp_prs(m,h2,n_admix,prefix,p=0.01,r2=0.2,
             prs_yri = calc_prs_tree(dict(zip(snps,weights["yri"])),trees["yri"])
             print("..... for the admixed population")
             
-            prs_admix,ids_admix = calc_prs_vcf_la(prefix+vcf_file,weights,snps,n_admix,m,h2,r2,p,snp_selection)
+            prs_admix = calc_prs_vcf_la(prefix+vcf_file,weights,snps,n_admix,m,h2,r2,p,snp_selection,prefix,trees["ceu"].num_sites)
             prs_all = np.concatenate((prs_ceu,prs_yri,prs_admix),axis=None)
             _write_output(prs_all,labels,prefix,m,h2,r2,p,snp_selection,snp_weighting,
                     len(train_cases[snp_weighting]),len(train_cases[snp_selection]))
             return
     return
 
-def calc_prs_vcf_la(vcf_file,weights,snps,n_admix,m,h2,r2,p,pop):
+def calc_prs_vcf_la(vcf_file,weights,snps,n_admix,m,h2,r2,p,pop,prefix,num_sites):
     anc = pd.read_csv(f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps.result.PRS",
                         sep="\t",index_col=0)
     sample_ids = pd.read_csv(f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps.prop.anc.PRS",
         sep="\t",index_col=0).index
     prs = np.zeros(n_admix)
-
+    pbar = tqdm.tqdm(total=num_sites)
     with open(vcf_file) as f:
         ind=0
         for line in f:
@@ -104,16 +104,22 @@ def calc_prs_vcf_la(vcf_file,weights,snps,n_admix,m,h2,r2,p,pop):
                     data = line.split("\t")[9:]
                     genotype = np.array([np.array(hap.split("|")).astype(int).sum() for hap in data])
                     var_weighted=[]
-                    pos = snps.index(ind)
                     for g in range(0,len(genotype)):
                         if anc.loc[ind,[sample_ids[g]+".0",sample_ids[g]+".1"]].sum() > 3:
-                            var_weighted.append(genotype[g]*weights["yri"][pos])
+                            if ind not in weights["yri"].index: weight = 0
+                            else: weight = weights["yri"][ind]
+                            var_weighted.append(genotype[g]*weight)
                         elif anc.loc[ind,[sample_ids[g]+".0",sample_ids[g]+".1"]].sum() == 3:
-                            var_weighted.append(genotype[g]*weights["meta"][pos])
+                            if ind not in weights["meta"].index: weight = 0
+                            else: weight = weights["meta"][ind]
+                            var_weighted.append(genotype[g]*weight)
                         elif anc.loc[ind,[sample_ids[g]+".0",sample_ids[g]+".1"]].sum() < 3:
-                            var_weighted.append(genotype[g]*weights["ceu"][pos])
+                            if ind not in weights["ceu"].index: weight = 0
+                            else: weight = weights["ceu"][ind]
+                            var_weighted.append(genotype[g]*weight)
                     prs=prs+np.array(var_weighted)
                 ind+=1
+                pbar.update(1)
     return prs
 
 def _ancestry_snps_admix(snps,prefix,m,h2,r2,p,pop):
