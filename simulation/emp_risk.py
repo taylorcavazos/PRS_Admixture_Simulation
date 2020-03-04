@@ -306,7 +306,7 @@ def _ld_clump(tree,variants,m,h2,pop,r2,p,prefix,max_distance,num_threads):
                 i+=1
             if add: clumped_variants.append(variants[v])
         np.savetxt(prefix+f"emp_prs/clumped_prs_vars_m_{m}_h2_{h2}_pop_{pop}_r2_{r2}_p{p}.txt",clumped_variants)
-        return clumped_variants
+        return np.array(clumped_variants)
     else: 
         return np.loadtxt(prefix+f"emp_prs/clumped_prs_vars_m_{m}_h2_{h2}_pop_{pop}_r2_{r2}_p{p}.txt")
 
@@ -396,7 +396,8 @@ def _load_data(weight,selection,path_tree_CEU,path_tree_YRI,prefix,m,h2,num2decr
     pop_dict = {"ceu":["ceu"],"yri":["yri"],"meta":["ceu","yri"],"la":["ceu","yri"]}
     pops2load = set(pop_dict.get(weight)+pop_dict.get(selection))
 
-    trees = {"ceu":msprime.load(prefix+path_tree_CEU),"yri":msprime.load(prefix+path_tree_YRI)}
+    trees = {"ceu":msprime.load(prefix+path_tree_CEU),"yri":msprime.load(prefix+path_tree_YRI),
+            "meta":msprime.load(prefix+"trees/tree_all.hdf")}
     
     if num2decrease == None:
         f = h5py.File(f'{prefix}true_prs/prs_m_{m}_h2_{h2}.hdf5', 'r')
