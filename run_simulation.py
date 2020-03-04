@@ -28,14 +28,12 @@ def main(sim,m,h2,weight,snp,cases_yri,outdir):
 	# PART 3: COMPUTE EMPIRICAL POLYGENIC RISK SCORES
 	## optional parameters which can be modified: p-value, r2, weighting, snp-selection (future),
 	## number of yri samples to be used as training
-	SIM.create_emp_prs(m, h2, N_ADMIX, prefix=f"{outdir}sim{sim}/",snp_weighting=weight,
+	SIM.create_emp_prs(m, h2, N_ADMIX, f"{outdir}sim{sim}/", P, R2,snp_weighting=weight,
 						snp_selection=snp,num2decrease=cases_yri)
 
 	# PART 4: SUMMARIZE RESULTS
-	if os.path.isfile()
-		print(f"Summary plots and data exist. If you would like to overwrite, remove {outdir}sim{sim}/summary/*")
-	else:
-		SIM.output_all_summary()
+	SIM.output_all_summary(sim,m,h2,f"{outdir}sim{sim}/", P, R2, snp_weighting=weight,
+						   snp_selection=snp,num2decrease=cases_yri)
 
 
 parser = argparse.ArgumentParser(description="Functions for simulating European, African, and Admixed populations and testing PRS building strategies for better generalization to diverse populations. Additional parameters can be adjusted in the config.py file")

@@ -13,10 +13,16 @@ from scipy import stats
 import statsmodels.api as sm
 import tqdm
 
+from scipy import stats
+from scipy.stats import chi2
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 from .true_risk import return_diploid_genos
 from .true_risk import calc_prs_tree, calc_prs_vcf
 
-def create_emp_prs(m,h2,n_admix,prefix,p=0.01,r2=0.2,
+def create_emp_prs(m,h2,n_admix,prefix,p,r2,
     vcf_file = "admixed_data/output/admix_afr_amer.query.vcf",
     path_tree_CEU="trees/tree_CEU_GWAS_nofilt.hdf",
     path_tree_YRI="trees/tree_YRI_GWAS_nofilt.hdf",
@@ -158,9 +164,11 @@ def _perform_meta(train_cases,m,h2,prefix):
                  f"{prefix}emp_prs/gwas_m_{m}_h2_{h2}_pop_ceu_cases_{len(train_cases['ceu'])}.txt " + \
                  f"{prefix}emp_prs/gwas_m_{m}_h2_{h2}_pop_yri_cases_{len(train_cases['yri'])}.txt " + \
                  f"{prefix}emp_prs/meta_m_{m}_h2_{h2}_casesCEU_{len(train_cases['ceu'])}_casesYRI_{len(train_cases['yri'])}.txt")
-    
-    return pd.read_csv(prefix+f"emp_prs/meta_m_{m}_h2_{h2}_casesCEU_{len(train_cases['ceu'])}"+ \
+        sum_stats = pd.read_csv(prefix+f"emp_prs/meta_m_{m}_h2_{h2}_casesCEU_{len(train_cases['ceu'])}"+ \
                                  f"_casesYRI_{len(train_cases['yri'])}.txt",sep="\t",index_col=0)
+        _plot_qq(sum_stats,prefix+f"emp_prs/meta_m_{m}_h2_{h2}_casesCEU_{len(train_cases['ceu'])}_casesYRI_{len(train_cases['yri'])}.txt")
+
+    return pd.read_csv(prefix+f"emp_prs/meta_m_{m}_h2_{h2}_casesCEU_{len(train_cases['ceu'])}_casesYRI_{len(train_cases['yri'])}.txt",sep="\t",index_col=0)
 
 def _select_variants(sum_stats,tree,m,h2,p,r2,pop,prefix,max_distance,num_threads):
     print("-----------------------------------")
@@ -204,11 +212,31 @@ def _compute_summary_stats(m,h2,tree,train_cases,train_controls,pop,prefix):
         sum_stats = sum_stats.replace([np.inf, -np.inf], np.nan)
         sum_stats.dropna(inplace=True)
         sum_stats = sum_stats.set_index("var_id").sort_index()
-        sum_stats.to_csv(prefix+"emp_prs/gwas_m_{}_h2_{}_pop_{}_cases_{}.txt".format(m,h2,pop,len(train_cases)),sep="\t",index=True)
+        sum_stats.to_csv(f"{prefix}emp_prs/gwas_m_{m}_h2_{h2}_pop_{pop}_cases_{len(train_cases)}.txt",sep="\t",index=True)
+        _plot_qq(sum_stats,f"{prefix}emp_prs/gwas_m_{m}_h2_{h2}_pop_{pop}_cases_{len(train_cases)}.txt")
         return sum_stats
     else: 
-        sum_stats = pd.read_csv(prefix+"emp_prs/gwas_m_{}_h2_{}_pop_{}_cases_{}.txt".format(m,h2,pop,len(train_cases)),sep="\t",index_col=0)
+        sum_stats = pd.read_csv(f"{prefix}emp_prs/gwas_m_{m}_h2_{h2}_pop_{pop}_cases_{len(train_cases)}.txt",sep="\t",index_col=0)
         return sum_stats
+
+def _plot_qq(sum_stats,filename):
+    chisq = chi2.ppf(1-sum_stats["p-value"],1)
+    lam_gc = np.median(chisq)/chi2.ppf(0.5,1)
+    pvals = sum_stats["p-value"].values
+    expected_p = (stats.rankdata(pvals,method="ordinal")+0.5)/(len(pvals)+1)
+    plt.figure(figsize=(5,5))
+    plt.scatter(-1*np.log10(expected_p), -1*np.log10(pvals),s=20)
+    plt.plot(sorted(-1*np.log10(expected_p)),sorted(-1*np.log10(expected_p)),c="black",linestyle="--")
+    plt.text(2.5,200,"$\lambda$ = {}".format(np.round(lam_gc,2)),fontsize=20)
+    plt.xlabel("Expected -log10 P-value",fontsize=16)
+    plt.ylabel("Observed -log10 P-Value",fontsize=16)
+    plt.ylim(0,300)
+    sns.despine()
+    prefix = "/".join(filename.split("/")[0:2])
+    name = filename.split("/")[3].split(".txt")[0]
+    plt.savefig(f"{prefix}/summary/{name}_QQ.png",type="png",bbox_inches="tight",dpi=400)
+
+
 
 def _ld_clump(tree,variants,m,h2,pop,r2,p,prefix,max_distance,num_threads):
     if not os.path.isfile(prefix+f"emp_prs/clumped_prs_vars_m_{m}_h2_{h2}_pop_{pop}_r2_{r2}_p{p}.txt"):
@@ -319,7 +347,7 @@ def _load_data(weight,selection,path_tree_CEU,path_tree_YRI,prefix,m,h2,num2decr
     trees = {"ceu":msprime.load(prefix+path_tree_CEU),"yri":msprime.load(prefix+path_tree_YRI)}
     
     if num2decrease == None:
-        f = h5py.File(prefix+'true_prs/prs_m_{}_h2_{}.hdf5'.format(1000,0.5), 'r')
+        f = h5py.File(f'{prefix}true_prs/prs_m_{m}_h2_{h2}.hdf5', 'r')
         train_cases = {"ceu":f["train_cases_ceu"][()],"yri":f["train_cases_yri"][()]-200000,
                        "meta":np.append(f["train_cases_ceu"][()],f["train_cases_yri"][()]),
                        "la":f["train_cases_yri"][()]}
@@ -330,7 +358,7 @@ def _load_data(weight,selection,path_tree_CEU,path_tree_YRI,prefix,m,h2,num2decr
         f.close()
     else:
         sub_yri_case,sub_yri_control = _decrease_training_samples(m,h2,"yri",num2decrease,prefix)
-        f = h5py.File(prefix+'true_prs/prs_m_{}_h2_{}.hdf5'.format(1000,0.5), 'r')
+        f = h5py.File(f'{prefix}true_prs/prs_m_{m}_h2_{h2}.hdf5', 'r')
         train_cases = {"ceu":f["train_cases_ceu"][()],"yri":sub_yri_case-200000,
                        "meta":np.append(f["train_cases_ceu"][()],sub_yri_case),
                        "la":sub_yri_case}
