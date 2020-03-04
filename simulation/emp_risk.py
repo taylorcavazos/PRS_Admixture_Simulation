@@ -48,11 +48,15 @@ def create_emp_prs(m,h2,n_admix,prefix,p,r2,
         VCF file path with admixed genotypes
 
     """
+    sim = prefix.split('sim')[1].split('/')[0]
     trees,sumstats,train_cases,train_controls,labels = _load_data(snp_weighting,snp_selection,path_tree_CEU,
                                                                   path_tree_YRI,prefix,m,h2,
                                                                   num2decrease)
     snps = _select_variants(sumstats[snp_selection],trees[snp_selection],m,h2,
                            p,r2,snp_selection,prefix,ld_distance,num_threads)
+    _write_allele_freq_bins(sim,snps.astype(int),trees,prefix,snp_selection,prefix+vcf_file,m,h2,r2,p,train_cases)
+    causal_inds =  np.linspace(0, trees["ceu"].num_sites, m, dtype=int,endpoint=False)
+    _write_allele_freq_bins(sim,causal_inds,trees,prefix,snp_selection,prefix+vcf_file,m,h2,r2,p,train_cases,causal=True)
     
     _ancestry_snps_admix(snps,prefix,m,h2,r2,p,snp_selection)
 
@@ -183,6 +187,54 @@ def _select_variants(sum_stats,tree,m,h2,p,r2,pop,prefix,max_distance,num_thread
     print(f"# variants after clumping: {len(clumped_prs_vars)}")
     print("-----------------------------------")
     return clumped_prs_vars
+
+def _compute_maf_vcf(vcf_file,var_list):
+    mafs = []
+    with open(vcf_file) as f:
+        ind = 0
+        for line in f:
+            if line[0] != "#":
+                if ind in var_list:
+                    data = line.split("\n")[0].split("\t")[9:]
+                    genotype = np.array([np.array(hap.split("|")).astype(int).sum() for hap in data])
+                    genotype = genotype.reshape(1,len(genotype))
+                    freq = np.sum(genotype,axis=1)/(2*genotype.shape[1])
+                    if freq < 0.5: maf = freq
+                    else: maf = 1-freq
+                    mafs.append(maf)
+                ind+=1
+
+    return np.array(mafs)
+
+def _return_maf_group(mafs,n_sites):
+    G1 = len(mafs[mafs<0.01])/n_sites
+    G2 = len(mafs[(mafs>=0.01)&(mafs<0.1)])/n_sites
+    G3 = len(mafs[(mafs>=0.1)&(mafs<0.2)])/n_sites
+    G4 = len(mafs[(mafs>=0.2)&(mafs<0.3)])/n_sites
+    G5 = len(mafs[(mafs>=0.3)&(mafs<0.4)])/n_sites
+    G6 = len(mafs[(mafs>=0.4)&(mafs<0.5)])/n_sites
+    return [G1,G2,G3,G4,G5,G6]
+
+def _write_allele_freq_bins(sim,var_list,trees,prefix,snp_selection,vcf_file,
+    m,h2,r2,p,train_cases,causal=False):
+    if not os.path.isfile(f"{prefix}summary/causal_maf_bins_m_{m}_h2_{h2}{sim}.txt"):
+        maf_ceu = _compute_maf(trees["ceu"],prefix,"ceu")[var_list]
+        maf_yri = _compute_maf(trees["yri"],prefix,"yri")[var_list]
+        maf_admix = _compute_maf_vcf(vcf_file,var_list)
+
+        df = pd.DataFrame(columns=["sim","pop","0 - 0.01","0.01 - 0.1","0.1 - 0.2","0.2 - 0.3","0.3 - 0.4","0.4 - 0.5"])
+        for pop,mafs in zip(["ceu","yri","admix"],[maf_ceu,maf_yri,maf_admix]):
+            groups = _return_maf_group(mafs,len(mafs))
+            sub_df = pd.DataFrame([[sim,pop]+groups],columns=["sim","pop","0 - 0.01","0.01 - 0.1","0.1 - 0.2","0.2 - 0.3","0.3 - 0.4","0.4 - 0.5"])
+            df = df.append(sub_df, ignore_index=True)
+
+        if not causal:
+            df.to_csv(f"{prefix}summary/emp_maf_bins_m_{m}_h2_{h2}_r2_{r2}_p_{p}"+\
+                        f"_{snp_selection}_snps_{len(train_cases[snp_selection])}cases"+\
+                        f"{sim}.txt",sep="\t")
+        else:
+            df.to_csv(f"{prefix}summary/causal_maf_bins_m_{m}_h2_{h2}{sim}.txt",sep="\t")
+    return
 
 def _compute_summary_stats(m,h2,tree,train_cases,train_controls,pop,prefix):
     if not os.path.isfile(prefix+"emp_prs/gwas_m_{}_h2_{}_pop_{}_cases_{}.txt".format(m,h2,pop,len(train_cases))):

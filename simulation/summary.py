@@ -30,15 +30,17 @@ def output_all_summary(sim,m,h2,prefix,p,r2,
             f"{sim}.txt")
     
     else:
-        true_prs_anc, emp_prs_anc = correlation(sim,true_prs,emp_prs,train_cases,train_controls,testing,anc,
+        anc_inds,summary = correlation(sim,true_prs,emp_prs,train_cases,train_controls,testing,anc,
                     m,h2,r2,p,snp_selection,snp_weighting,prefix)
 
-        plot_true_vs_empirical(prefix,true_prs_anc,emp_prs_anc,train_cases,snp_selection,snp_weighting,sim,
+        plot_true_vs_empirical(prefix,true_prs,emp_prs,anc_inds,train_cases,snp_selection,snp_weighting,sim,
+                                m,h2,r2,p)
+        correlation_plot(summary,prefix,true_prs,emp_prs,anc_inds,train_cases,snp_selection,snp_weighting,sim,
                                 m,h2,r2,p)
 
     return
 
-def plot_true_vs_empirical(prefix,true_prs,emp_prs,train_cases,snp_selection,snp_weight,sim,
+def plot_true_vs_empirical(prefix,true_prs,emp_prs,anc_inds,train_cases,snp_selection,snp_weight,sim,
     m,h2,r2,p):
     labels = {"ceu":"CEU","yri":"YRI","low":"CEU <= 20%","mid":"80% > CEU > 20%","high":"CEU >= 80%"}
     colors = dict(zip(['ceu', 'high', 'mid', 'low', 'yri'],['#103c42', '#0b696a', '#069995','#8ac766','#ffe837']))
@@ -47,7 +49,7 @@ def plot_true_vs_empirical(prefix,true_prs,emp_prs,train_cases,snp_selection,snp
     fig,axes = plt.subplots(ncols=2,nrows=1,figsize=(20,10))
     for key in ['ceu', 'high', 'mid', 'low', 'yri']:
         for ind,prs in enumerate([true_prs,emp_prs]):
-            sns.distplot(stats.zscore(prs[key]),color=colors[key],label=labels[key],
+            sns.distplot(stats.zscore(prs)[anc_inds[key]],color=colors[key],label=labels[key],
                 hist=False,kde=True,kde_kws = {'shade': True, 'linewidth': 3},ax=axes[ind])
             axes[ind].set_xlabel(titles[ind],fontsize=20)
             axes[ind].set_ylabel("Density",fontsize=20)
@@ -62,14 +64,10 @@ def plot_true_vs_empirical(prefix,true_prs,emp_prs,train_cases,snp_selection,snp
                     f"{sim}.png",dpi=400)
 
     return
-
-def plot_anc_dist():
-    return
-
+    
 def correlation(sim,true_prs,emp_prs,train_cases,train_controls,testing,anc,
                 m,h2,r2,p,snp_selection,snp_weight,prefix):
-    true_prs_anc = {}
-    emp_prs_anc = {}
+    anc_inds = {}
 
     summary = pd.DataFrame(index=["vals"], columns=["train_ceu_corr","test_ceu_corr",
                                                     "train_yri_corr","test_yri_corr",
@@ -85,8 +83,7 @@ def correlation(sim,true_prs,emp_prs,train_cases,train_controls,testing,anc,
         test_emp_prs = emp_prs[testing[pop]]
         summary.loc["vals",f"test_{pop}_corr"] = stats.spearmanr(test_true_prs,test_emp_prs)[0]
 
-        true_prs_anc[pop] = test_true_prs
-        emp_prs_anc[pop] = test_emp_prs
+        anc_inds[pop] = testing[pop]
 
     for prop in [(-1*np.inf,0.2,"low"),(0.2,0.8,"mid"),(0.8,np.inf,"high")]:
         prop_admix = anc[(anc["Prop_CEU"]>prop[0])&(anc["Prop_CEU"]<=prop[1])].index
@@ -95,19 +92,37 @@ def correlation(sim,true_prs,emp_prs,train_cases,train_controls,testing,anc,
         summary.loc["vals",f"admix_{prop[2]}_ceu_corr"] = stats.spearmanr(true_prs[testing_prop_admix],
                                                                           emp_prs[testing_prop_admix])[0]
 
-        true_prs_anc[prop[2]] = true_prs[testing_prop_admix]
-        emp_prs_anc[prop[2]] = emp_prs[testing_prop_admix]
+        anc_inds[prop[2]] = testing["admix"][prop_admix]
 
     summary.to_csv(f"{prefix}summary/prs_corr_m_{m}_h2_{h2}_r2_{r2}_p_{p}"+\
                     f"_{snp_selection}_snps_{len(train_cases[snp_selection])}cases"+\
                     f"_{snp_weight}_weights_{len(train_cases[snp_weight])}cases_"+\
                     f"{sim}.txt",sep="\t")
-    return true_prs_anc,emp_prs_anc
+    return anc_inds,summary
 
-def allele_freq_causal():
-    return
 
-def allele_freq_selected():
+def correlation_plot(summary,prefix,true_prs,emp_prs,anc_inds,train_cases,snp_selection,snp_weight,sim,
+                                m,h2,r2,p):
+    labels = {"ceu":"CEU","yri":"YRI","low":"CEU <= 20%","mid":"80% > CEU > 20%","high":"CEU >= 80%"}
+    colors = dict(zip(['ceu', 'high', 'mid', 'low', 'yri'],['#103c42', '#0b696a', '#069995','#8ac766','#ffe837']))
+    corr_names = {"ceu":"test_ceu_corr","yri":"test_yri_corr","low":"admix_low_ceu_corr","mid":"admix_mid_ceu_corr","high":"admix_high_ceu_corr"}
+    titles = ["True PRS", "Empirical PRS"]
+
+    fig,axes = plt.subplots(ncols=5,nrows=1,figsize=(25,5),sharey=True)
+    for ind,key in enumerate(['ceu', 'high', 'mid', 'low', 'yri']):
+        axes[ind].scatter(stats.zscore(emp_prs)[anc_inds[key]],stats.zscore(true_prs)[anc_inds[key]],
+                         color=colors[key])
+        axes[ind].set_title(labels[key]+"\nSpearman's rho = {}".format(np.round(summary.loc["vals",corr_names[key]],2)))
+        axes[ind].set_ylabel("True PRS")
+        axes[ind].set_xlabel("Emprirical PRS")
+    fig.tight_layout(h_pad= 2,w_pad=0.5)
+    sns.despine()
+    plt.savefig(f"{prefix}summary/prs_corr_scat_m_{m}_h2_{h2}_r2_{r2}_p_{p}"+\
+                    f"_{snp_selection}_snps_{len(train_cases[snp_selection])}cases"+\
+                    f"_{snp_weight}_weights_{len(train_cases[snp_weight])}cases_"+\
+                    f"{sim}.png",dpi=400)
+
+def compute_NRI():
     return
 
 def load_data(m,h2,r2,p,prefix,snp_selection,snp_weight,num2decrease):
