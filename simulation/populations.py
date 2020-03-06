@@ -106,7 +106,8 @@ def _write_sample_map(tree, N_CEU, N_YRI, N_CHB):
 				"CHB":tree.samples(population_id=2)}
 
 	sample_map = pd.DataFrame(columns = np.arange(0,3))
-	for pop, samples in pop_dict.items():
+	for key in ["CEU","YRI"]:
+		samples = pop_dict.get(key)
 		to_append = np.array([[pop]*int(len(samples)/2),samples[0::2],samples[1::2]]).T
 		sample_map = sample_map.append(pd.DataFrame(to_append),ignore_index=True)
 	sample_map = sample_map.reset_index()

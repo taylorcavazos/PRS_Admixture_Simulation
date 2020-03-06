@@ -111,7 +111,7 @@ def correlation_plot(summary,prefix,true_prs,emp_prs,anc_inds,train_cases,snp_se
     for ind,key in enumerate(['ceu', 'high', 'mid', 'low', 'yri']):
         axes[ind].scatter(stats.zscore(emp_prs)[anc_inds[key]],stats.zscore(true_prs)[anc_inds[key]],
                          color=colors[key])
-        axes[ind].set_title(labels[key]+"\nSpearman's rho = {}".format(np.round(summary.loc["vals",corr_names[key]],2)))
+        axes[ind].set_title(labels[key]+"\nPearson's rho = {}".format(np.round(summary.loc["vals",corr_names[key]],2)))
         axes[ind].set_ylabel("True PRS")
         axes[ind].set_xlabel("Emprirical PRS")
     fig.tight_layout(h_pad= 2,w_pad=0.5)

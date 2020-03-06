@@ -144,6 +144,7 @@ def _ancestry_snps_admix(snps,prefix,m,h2,r2,p,pop):
                     samples = [sample_haps[i].split(".")[0] for i in range(0,len(sample_haps),2)]
                     anc_prop = pd.DataFrame(index=samples,columns=["Prop_CEU","Prop_YRI"])
                     counts_YRI = np.zeros(len(samples))
+                    counts_CEU = np.zeros(len(samples))
 
                 elif ind-1 in snps:
                     anc_prs.loc[ind-1,:] = line.split("\n")[0].split("\t")[2:]
@@ -151,10 +152,13 @@ def _ancestry_snps_admix(snps,prefix,m,h2,r2,p,pop):
                     haplo_anc = np.array(line.split("\t")[2:]).astype(int)
                     YRI_arr = haplo_anc-1
                     line_counts_YRI = np.add.reduceat(YRI_arr, np.arange(0, len(YRI_arr), 2))
+                    CEU_arr = np.absolute(1-YRI_arr)
+                    line_counts_CEU = np.add.reduceat(CEU_arr, np.arange(0, len(CEU_arr), 2))
                     counts_YRI = counts_YRI+line_counts_YRI
+                    counts_CEU = counts_CEU+line_counts_CEU
         
         anc_prop["Prop_YRI"] = counts_YRI/(2*(len(snps)-1))
-        anc_prop["Prop_CEU"] = 1-anc_prop["Prop_YRI"]
+        anc_prop["Prop_CEU"] = ounts_CEU/(2*(len(snps)-1))
 
         anc_prop.to_csv(f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps.prop.anc.PRS",sep="\t")
         anc_prs.to_csv(f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps.result.PRS",sep="\t")
