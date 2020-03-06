@@ -16,7 +16,7 @@ Create summary level information and plots for empirical and true PRS
 def output_all_summary(sim,m,h2,prefix,p,r2,
                         snp_weighting="ceu",snp_selection="ceu",
                         num2decrease=None):
-    true_prs,emp_prs,anc,testing,train_cases,train_controls = load_data(m,h2,r2,p,prefix,snp_selection,
+    true_prs,emp_prs,anc,testing,train_cases,train_controls,labels = load_data(m,h2,r2,p,prefix,snp_selection,
                                                                         snp_weighting,num2decrease)
     sim = prefix.split('sim')[1].split('/')[0]
     if os.path.isfile(f"{prefix}summary/prs_corr_m_{m}_h2_{h2}_r2_{r2}_p_{p}"+\
@@ -31,7 +31,7 @@ def output_all_summary(sim,m,h2,prefix,p,r2,
     
     else:
         anc_inds,summary = correlation(sim,true_prs,emp_prs,train_cases,train_controls,testing,anc,
-                    m,h2,r2,p,snp_selection,snp_weighting,prefix)
+                    m,h2,r2,p,snp_selection,snp_weighting,prefix,labels)
 
         plot_true_vs_empirical(prefix,true_prs,emp_prs,anc_inds,train_cases,snp_selection,snp_weighting,sim,
                                 m,h2,r2,p)
@@ -66,7 +66,7 @@ def plot_true_vs_empirical(prefix,true_prs,emp_prs,anc_inds,train_cases,snp_sele
     return
     
 def correlation(sim,true_prs,emp_prs,train_cases,train_controls,testing,anc,
-                m,h2,r2,p,snp_selection,snp_weight,prefix):
+                m,h2,r2,p,snp_selection,snp_weight,prefix,labels):
     anc_inds = {}
 
     summary = pd.DataFrame(index=["vals"], columns=["train_ceu_corr","test_ceu_corr",
@@ -77,19 +77,18 @@ def correlation(sim,true_prs,emp_prs,train_cases,train_controls,testing,anc,
         if pop != "admix":
             train_true_prs = true_prs[np.append(train_cases[pop],train_controls[pop])]
             train_emp_prs = emp_prs[np.append(train_cases[pop],train_controls[pop])]
-            summary.loc["vals",f"train_{pop}_corr"] = stats.spearmanr(train_true_prs,train_emp_prs)[0]
+            summary.loc["vals",f"train_{pop}_corr"] = stats.pearsonr(train_true_prs,train_emp_prs)[0]
 
         test_true_prs = true_prs[testing[pop]]
         test_emp_prs = emp_prs[testing[pop]]
-        summary.loc["vals",f"test_{pop}_corr"] = stats.spearmanr(test_true_prs,test_emp_prs)[0]
+        summary.loc["vals",f"test_{pop}_corr"] = stats.pearsonr(test_true_prs,test_emp_prs)[0]
 
         anc_inds[pop] = testing[pop]
 
-    for prop in [(-1*np.inf,0.2,"low"),(0.2,0.8,"mid"),(0.8,np.inf,"high")]:
+    for prop in [(0,0.2,"low"),(0.2,0.8,"mid"),(0.8,1,"high")]:
         prop_admix = anc[(anc["Prop_CEU"]>prop[0])&(anc["Prop_CEU"]<=prop[1])].index
-
         testing_prop_admix = testing["admix"][prop_admix]
-        summary.loc["vals",f"admix_{prop[2]}_ceu_corr"] = stats.spearmanr(true_prs[testing_prop_admix],
+        summary.loc["vals",f"admix_{prop[2]}_ceu_corr"] = stats.pearsonr(true_prs[testing_prop_admix],
                                                                           emp_prs[testing_prop_admix])[0]
 
         anc_inds[prop[2]] = testing["admix"][prop_admix]
@@ -131,10 +130,10 @@ def load_data(m,h2,r2,p,prefix,snp_selection,snp_weight,num2decrease):
 
     if num2decrease == None:
         f = h5py.File(f'{prefix}true_prs/prs_m_{m}_h2_{h2}.hdf5', 'r')
-        train_cases = {"ceu":f["train_cases_ceu"][()],"yri":f["train_cases_yri"][()]-200000,
+        train_cases = {"ceu":f["train_cases_ceu"][()],"yri":f["train_cases_yri"][()],
                        "meta":np.append(f["train_cases_ceu"][()],f["train_cases_yri"][()]),
                        "la":f["train_cases_yri"][()]}
-        train_controls = {"ceu":f["train_controls_ceu"][()],"yri":f["train_controls_yri"][()]-200000,
+        train_controls = {"ceu":f["train_controls_ceu"][()],"yri":f["train_controls_yri"][()],
                        "meta":np.append(f["train_controls_ceu"][()],f["train_controls_yri"][()]),
                        "la":f["train_controls_yri"][()]}
         labels_all = f["labels"][()]
@@ -142,10 +141,10 @@ def load_data(m,h2,r2,p,prefix,snp_selection,snp_weight,num2decrease):
     else:
         sub_yri_case,sub_yri_control = _decrease_training_samples(m,h2,"yri",num2decrease,prefix)
         f = h5py.File(f'{prefix}true_prs/prs_m_{m}_h2_{h2}.hdf5', 'r')
-        train_cases = {"ceu":f["train_cases_ceu"][()],"yri":sub_yri_case-200000,
+        train_cases = {"ceu":f["train_cases_ceu"][()],"yri":sub_yri_case,
                        "meta":np.append(f["train_cases_ceu"][()],sub_yri_case),
                        "la":sub_yri_case}
-        train_controls = {"ceu":f["train_controls_ceu"][()],"yri":sub_yri_control-200000,
+        train_controls = {"ceu":f["train_controls_ceu"][()],"yri":sub_yri_control,
                           "meta":np.append(f["train_controls_ceu"][()],sub_yri_control),
                           "la":sub_yri_control}
         labels_all = f["labels"][()]
@@ -156,8 +155,8 @@ def load_data(m,h2,r2,p,prefix,snp_selection,snp_weight,num2decrease):
 
     for ind in all_testing:
         label = labels_all[ind].decode("utf-8")
-        if "ceu" in label: testing["ceu"] = np.append(testing["ceu"],ind).astype(int)
-        elif "yri" in label: testing["yri"]= np.append(testing["yri"],ind).astype(int)
+        if "ceu" in label: testing["ceu"] = np.append(testing["ceu"],[ind]).astype(int)
+        elif "yri" in label: testing["yri"]= np.append(testing["yri"],[ind]).astype(int)
         else: testing["admix"]= np.append(testing["admix"],ind).astype(int)
 
     f.close()
@@ -166,4 +165,4 @@ def load_data(m,h2,r2,p,prefix,snp_selection,snp_weight,num2decrease):
     emp_prs = h5py.File(f"{prefix}emp_prs/emp_prs_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{snp_selection}_snps_{len(train_cases[snp_selection])}cases"+\
                         f"_{snp_weight}_weights_{len(train_cases[snp_weight])}cases.hdf5","r")['X'][()]
 
-    return true_prs,emp_prs,anc,testing,train_cases,train_controls
+    return true_prs,emp_prs,anc,testing,train_cases,train_controls,labels_all
