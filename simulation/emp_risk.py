@@ -158,7 +158,7 @@ def _ancestry_snps_admix(snps,prefix,m,h2,r2,p,pop):
                     counts_CEU = counts_CEU+line_counts_CEU
         
         anc_prop["Prop_YRI"] = counts_YRI/(2*(len(snps)-1))
-        anc_prop["Prop_CEU"] = ounts_CEU/(2*(len(snps)-1))
+        anc_prop["Prop_CEU"] = counts_CEU/(2*(len(snps)-1))
 
         anc_prop.to_csv(f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps.prop.anc.PRS",sep="\t")
         anc_prs.to_csv(f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps.result.PRS",sep="\t")
@@ -174,7 +174,7 @@ def _perform_meta(train_cases,m,h2,prefix):
                  f"{prefix}emp_prs/meta_m_{m}_h2_{h2}_casesCEU_{len(train_cases['ceu'])}_casesYRI_{len(train_cases['yri'])}.txt")
         sum_stats = pd.read_csv(prefix+f"emp_prs/meta_m_{m}_h2_{h2}_casesCEU_{len(train_cases['ceu'])}"+ \
                                  f"_casesYRI_{len(train_cases['yri'])}.txt",sep="\t",index_col=0)
-        _plot_qq(sum_stats,prefix+f"emp_prs/meta_m_{m}_h2_{h2}_casesCEU_{len(train_cases['ceu'])}_casesYRI_{len(train_cases['yri'])}.txt")
+        _plot_qq(sum_stats,prefix,f"emp_prs/meta_m_{m}_h2_{h2}_casesCEU_{len(train_cases['ceu'])}_casesYRI_{len(train_cases['yri'])}")
 
     return pd.read_csv(prefix+f"emp_prs/meta_m_{m}_h2_{h2}_casesCEU_{len(train_cases['ceu'])}_casesYRI_{len(train_cases['yri'])}.txt",sep="\t",index_col=0)
 
@@ -269,13 +269,13 @@ def _compute_summary_stats(m,h2,tree,train_cases,train_controls,pop,prefix):
         sum_stats.dropna(inplace=True)
         sum_stats = sum_stats.set_index("var_id").sort_index()
         sum_stats.to_csv(f"{prefix}emp_prs/gwas_m_{m}_h2_{h2}_pop_{pop}_cases_{len(train_cases)}.txt",sep="\t",index=True)
-        _plot_qq(sum_stats,f"{prefix}emp_prs/gwas_m_{m}_h2_{h2}_pop_{pop}_cases_{len(train_cases)}.txt")
+        _plot_qq(sum_stats,prefix,f"emp_prs/gwas_m_{m}_h2_{h2}_pop_{pop}_cases_{len(train_cases)}")
         return sum_stats
     else: 
         sum_stats = pd.read_csv(f"{prefix}emp_prs/gwas_m_{m}_h2_{h2}_pop_{pop}_cases_{len(train_cases)}.txt",sep="\t",index_col=0)
         return sum_stats
 
-def _plot_qq(sum_stats,filename):
+def _plot_qq(sum_stats,prefix,outfile):
     chisq = chi2.ppf(1-sum_stats["p-value"],1)
     lam_gc = np.median(chisq)/chi2.ppf(0.5,1)
     pvals = sum_stats["p-value"].values
@@ -288,9 +288,7 @@ def _plot_qq(sum_stats,filename):
     plt.ylabel("Observed -log10 P-Value",fontsize=16)
     plt.ylim(0,300)
     sns.despine()
-    prefix = "/".join(filename.split("/")[0:2])
-    name = filename.split("/")[3].split(".txt")[0]
-    plt.savefig(f"{prefix}/summary/{name}_QQ.png",type="png",bbox_inches="tight",dpi=400)
+    plt.savefig(f"{prefix}/summary/{outfile}_QQ.png",type="png",bbox_inches="tight",dpi=400)
 
 
 
