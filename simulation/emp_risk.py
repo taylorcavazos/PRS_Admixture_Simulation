@@ -174,7 +174,7 @@ def _perform_meta(train_cases,m,h2,prefix):
                  f"{prefix}emp_prs/meta_m_{m}_h2_{h2}_casesCEU_{len(train_cases['ceu'])}_casesYRI_{len(train_cases['yri'])}.txt")
         sum_stats = pd.read_csv(prefix+f"emp_prs/meta_m_{m}_h2_{h2}_casesCEU_{len(train_cases['ceu'])}"+ \
                                  f"_casesYRI_{len(train_cases['yri'])}.txt",sep="\t",index_col=0)
-        _plot_qq(sum_stats,prefix,f"emp_prs/meta_m_{m}_h2_{h2}_casesCEU_{len(train_cases['ceu'])}_casesYRI_{len(train_cases['yri'])}")
+        _plot_qq(sum_stats,prefix,f"meta_m_{m}_h2_{h2}_casesCEU_{len(train_cases['ceu'])}_casesYRI_{len(train_cases['yri'])}")
 
     return pd.read_csv(prefix+f"emp_prs/meta_m_{m}_h2_{h2}_casesCEU_{len(train_cases['ceu'])}_casesYRI_{len(train_cases['yri'])}.txt",sep="\t",index_col=0)
 
@@ -269,7 +269,7 @@ def _compute_summary_stats(m,h2,tree,train_cases,train_controls,pop,prefix):
         sum_stats.dropna(inplace=True)
         sum_stats = sum_stats.set_index("var_id").sort_index()
         sum_stats.to_csv(f"{prefix}emp_prs/gwas_m_{m}_h2_{h2}_pop_{pop}_cases_{len(train_cases)}.txt",sep="\t",index=True)
-        _plot_qq(sum_stats,prefix,f"emp_prs/gwas_m_{m}_h2_{h2}_pop_{pop}_cases_{len(train_cases)}")
+        _plot_qq(sum_stats,prefix,f"gwas_m_{m}_h2_{h2}_pop_{pop}_cases_{len(train_cases)}")
         return sum_stats
     else: 
         sum_stats = pd.read_csv(f"{prefix}emp_prs/gwas_m_{m}_h2_{h2}_pop_{pop}_cases_{len(train_cases)}.txt",sep="\t",index_col=0)
@@ -288,7 +288,7 @@ def _plot_qq(sum_stats,prefix,outfile):
     plt.ylabel("Observed -log10 P-Value",fontsize=16)
     plt.ylim(0,300)
     sns.despine()
-    plt.savefig(f"{prefix}/summary/{outfile}_QQ.png",type="png",bbox_inches="tight",dpi=400)
+    plt.savefig(f"{prefix}summary/{outfile}_QQ.png",type="png",bbox_inches="tight",dpi=400)
 
 
 
