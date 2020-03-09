@@ -74,9 +74,18 @@ def _simulate_out_of_afr(N_CEU, N_YRI, N_CHB, N_MATE, rmap_file, prefix, chrom):
 	tree_other = tree.simplify(samples = other_samps, filter_sites=False)
 	sample_map_other = _write_sample_map(tree_other,N_CEU-N_MATE,N_YRI-N_MATE)
 	ceu_other_samples = sample_map_other[sample_map_other.iloc[:,1]=="CEU"]
-	tree_ceu_gwas = tree_other.simplify(samples=ceu_other_samples,filter_sites=False)
+	ceu_other_samples_hap = []
+	for ind in ceu_other_samples.index:
+		ceu_other_samples_hap.append(ceu_other_samples.loc[ind,2])
+		ceu_other_samples_hap.append(ceu_other_samples.loc[ind,3])
+
+	tree_ceu_gwas = tree_other.simplify(samples=ceu_other_samples_hap,filter_sites=False)
 	tree_ceu_gwas.dump(prefix+"trees/tree_CEU_GWAS_nofilt.hdf")
 	yri_other_samples = sample_map_other[sample_map_other.iloc[:,1]=="YRI"]
+	yri_other_samples_hap = []
+	for ind in yri_other_samples.index:
+		yri_other_samples_hap.append(yri_other_samples.loc[ind,2])
+		yri_other_samples_hap.append(yri_other_samples.loc[ind,3])
 	tree_yri_gwas = tree_other.simplify(samples=yri_other_samples,filter_sites=False)
 	tree_yri_gwas.dump(prefix+"trees/tree_YRI_GWAS_nofilt.hdf")
 	return
