@@ -96,6 +96,7 @@ def _extract_samples_for_admixture(sample_map,tree,N_MATE,prefix,chrom,N_CHB=0):
 		mate_samples.append(ALL_mate.loc[ind,3])
 
 	mate_samples = np.array(mate_samples).astype(np.int32)
+	tree_mate = main_tree.simplify(samples=mate_samples,filter_sites=False)
 	mate_sample_map = _write_sample_map(tree_mate,N_MATE,N_MATE)
 	tree_mate.dump(prefix+"trees/tree_mate.hdf")
 	mate_sample_map.to_csv(prefix+"trees/sample_map_mate.txt",header=False,sep="\t",index=False)
