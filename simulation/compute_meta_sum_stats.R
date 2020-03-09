@@ -1,3 +1,5 @@
+options(install.packages.compile.from.source = "always")
+if (!require("metafor")) install.packages("metafor")
 library(metafor)
 library(data.table)
 

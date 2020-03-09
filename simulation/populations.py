@@ -63,7 +63,7 @@ def _simulate_out_of_afr(N_CEU, N_YRI, N_CHB, N_MATE, rmap_file, prefix, chrom):
 
 	rmap = msprime.RecombinationMap.read_hapmap(rmap_file)
 	tree = _out_of_africa(N_CEU, N_YRI, N_CHB, rmap)
-	sample_map = _write_sample_map(tree, N_CEU, N_YRI, N_CHB)
+	sample_map = _write_sample_map(tree, N_CEU, N_YRI)
 
 	tree.dump(prefix+"trees/tree_all.hdf")
 	sample_map.to_csv(prefix+"trees/sample_map_all.txt",header=False,sep="\t",index=False)
@@ -72,11 +72,11 @@ def _simulate_out_of_afr(N_CEU, N_YRI, N_CHB, N_MATE, rmap_file, prefix, chrom):
 	all_data = np.array(tree.samples()).astype(np.int32)
 	other_samps = [ind for ind in all_data if ind not in mate_samples]
 	tree_other = tree.simplify(samples = other_samps, filter_sites=False)
-	sample_map_other = _write_sample_map(tree_other,N_CEU-N_MATE,N_YRI-N_MATE,N_CHB)
-	ceu_other_samples = tree_other.samples(population_id=1)
+	sample_map_other = _write_sample_map(tree_other,N_CEU-N_MATE,N_YRI-N_MATE)
+	ceu_other_samples = sample_map_other[sample_map_other.iloc[:,1]=="CEU"]
 	tree_ceu_gwas = tree_other.simplify(samples=ceu_other_samples,filter_sites=False)
 	tree_ceu_gwas.dump(prefix+"trees/tree_CEU_GWAS_nofilt.hdf")
-	yri_other_samples = tree_other.samples(population_id=0)
+	yri_other_samples = sample_map_other[sample_map_other.iloc[:,1]=="YRI"]
 	tree_yri_gwas = tree_other.simplify(samples=yri_other_samples,filter_sites=False)
 	tree_yri_gwas.dump(prefix+"trees/tree_YRI_GWAS_nofilt.hdf")
 	return
@@ -89,9 +89,14 @@ def _extract_samples_for_admixture(sample_map,tree,N_MATE,prefix,chrom,N_CHB=0):
 	yri_mate = yri_samples.loc[np.random.choice(yri_samples.index,size=N_MATE,replace=False)]
 	ALL_mate = pd.concat([ceu_mate,yri_mate])
 
-	mate_samples = np.array(sorted(list(ALL_mate.loc[:,2])+list(ALL_mate.loc[:,3]))).astype(np.int32)
-	tree_mate = tree.simplify(samples=mate_samples,filter_sites=False)
-	mate_sample_map = _write_sample_map(tree_mate,N_MATE,N_MATE,N_CHB)
+	mate_samples = []
+
+	for ind in ALL_mate.index:
+		mate_samples.append(ALL_mate.loc[ind,2])
+		mate_samples.append(ALL_mate.loc[ind,3])
+
+	mate_samples = np.array(mate_samples).astype(np.int32)
+	mate_sample_map = _write_sample_map(tree_mate,N_MATE,N_MATE)
 	tree_mate.dump(prefix+"trees/tree_mate.hdf")
 	mate_sample_map.to_csv(prefix+"trees/sample_map_mate.txt",header=False,sep="\t",index=False)
 	with gzip.open(prefix+"admixed_data/input/ceu_yri_genos.vcf.gz", "wt") as f:
@@ -99,21 +104,21 @@ def _extract_samples_for_admixture(sample_map,tree,N_MATE,prefix,chrom,N_CHB=0):
 		mate_sample_map.iloc[:,:2].to_csv(prefix+"admixed_data/input/ceu_yri_map.txt",sep="\t",header=False,index=False)
 	return mate_samples
 
-def _write_sample_map(tree, N_CEU, N_YRI, N_CHB):
+def _write_sample_map(tree, N_CEU, N_YRI):
 
-	pop_dict = {"YRI":tree.samples(population_id=0),
-				"CEU":tree.samples(population_id=1),
-				"CHB":tree.samples(population_id=2)}
-
-	sample_map = pd.DataFrame(columns = np.arange(0,3))
-	for pop in ["CEU","YRI"]:
-		samples = pop_dict.get(pop)
-		to_append = np.array([[pop]*int(len(samples)/2),samples[0::2],samples[1::2]]).T
-		sample_map = sample_map.append(pd.DataFrame(to_append),ignore_index=True)
-	sample_map = sample_map.reset_index()
-	sample_map.columns = np.arange(0,4)
-	sample_map[0] = "msp_"+sample_map[0].astype(str)
-	return sample_map
+    pop_dict = {0:"YRI",1:"CEU",2:"CHB"}
+    pops,inds,hap1,hap2 = [],[],[],[]
+    count=0
+    for i in range(0,2*(N_CEU+N_YRI),2):
+            pops.append(pop_dict.get(tree.get_population(i)))
+            inds.append("msp_"+str(count))
+            hap1.append(i)
+            hap2.append(i+1)
+            count+=1
+    df = pd.DataFrame(np.column_stack([pops,hap1,hap2]), index=inds)
+    df = df.reset_index()
+    df.columns = np.arange(0,4)
+    return df
 
 def _out_of_africa(N_CEU, N_YRI, N_CHB, rmap):
 	"""
