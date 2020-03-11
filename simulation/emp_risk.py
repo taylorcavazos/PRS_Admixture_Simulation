@@ -429,7 +429,7 @@ def _load_data(weight,selection,path_tree_CEU,path_tree_YRI,prefix,m,h2,num2decr
                                                train_cases[pop],
                                                train_controls[pop],
                                                pop,prefix)
-    if weight == "meta" or weight == "la":
+    if weight == "meta" or weight == "la" or selection == "meta" or selection == "la":
         sumstats["meta"] = _perform_meta(train_cases,m,h2,prefix)
     return trees,sumstats,train_cases,train_controls,labels_all
 
