@@ -116,17 +116,11 @@ def calc_prs_vcf_la(vcf_file,weights,snps,n_admix,m,h2,r2,p,pop,prefix,num_sites
                     var_weighted=[]
                     for g in range(0,len(genotype)):
                         if anc.loc[ind,[sample_ids[g]+".0",sample_ids[g]+".1"]].sum() > 3:
-                            if ind not in weights["yri"].index: weight = 0
-                            else: weight = weights["yri"][ind]
-                            var_weighted.append(genotype[g]*weight)
+                            var_weighted.append(genotype[g]*weights["yri"][ind])
                         elif anc.loc[ind,[sample_ids[g]+".0",sample_ids[g]+".1"]].sum() == 3:
-                            if ind not in weights["meta"].index: weight = 0
-                            else: weight = weights["meta"][ind]
-                            var_weighted.append(genotype[g]*weight)
+                            var_weighted.append(genotype[g]*weights["meta"][ind])
                         elif anc.loc[ind,[sample_ids[g]+".0",sample_ids[g]+".1"]].sum() < 3:
-                            if ind not in weights["ceu"].index: weight = 0
-                            else: weight = weights["ceu"][ind]
-                            var_weighted.append(genotype[g]*weight)
+                            var_weighted.append(genotype[g]*weights["ceu"][ind])
                     prs=prs+np.array(var_weighted)
                 ind+=1
                 pbar.update(1)
@@ -358,16 +352,32 @@ def _gwas(genos_case,genos_control):
     """
     Run chi-squared to extract p-values and effect sizes
     """
-    case_ref = 2*np.sum(genos_case==0,axis=1)+np.sum(genos_case==1,axis=1)
-    case_alt = 2*np.sum(genos_case==2,axis=1)+np.sum(genos_case==1,axis=1)
-    control_ref = 2*np.sum(genos_control==0,axis=1)+np.sum(genos_control==1,axis=1)
-    control_alt = 2*np.sum(genos_control==2,axis=1)+np.sum(genos_case==1,axis=1)
-    obs = np.array([[case_ref[0],case_alt[0]],[control_ref[0],control_alt[0]]])
-    chi2, pval, dof, ex = stats.chi2_contingency(obs)
+    case_AA = np.sum(genos_case>1,axis=1) 
+    case_AB = np.sum(genos_case==1,axis=1)
+    case_BB = np.sum(genos_case==0,axis=1)
+    control_AA = np.sum(genos_control>1,axis=1)
+    control_AB = np.sum(genos_control==1,axis=1)
+    control_BB = np.sum(genos_control==0,axis=1)
 
+    R = case_BB + case_AA + case_AB
+    S = control_BB + control_AA + control_AB
+    n0 = case_AA+control_AA
+    n1 = case_AB+control_AB
+    n2 = case_BB+control_BB
+    N = R+S
+
+    exp_counts = np.array([[(2*R*(2*n0+n1))/(2*N),(2*R*(n1+2*n2))/(2*N)],
+                           [(2*S*(2*n0+n1))/(2*N),(2*S*(n1+2*n2))/(2*N)]])
+    obs_counts = np.array([[2*case_AA+case_AB, case_AB+2*case_BB],
+                           [2*control_AA+control_AB, control_AB+2*control_BB]])
+    chistat,pval = stats.chisquare(obs_counts.ravel(),f_exp=exp_counts.ravel(),ddof=1)
+
+    case_A, case_B = 2*case_AA+case_AB, case_AB+2*case_BB
+    control_A, control_B = 2*control_AA+control_AB, control_AB+2*control_BB
+    
     try:
-        OR = (case_alt*control_ref)/(case_ref*control_alt)
-        return OR[0], pval
+        OR = (case_A*control_B)/(case_B*control_A)
+        return OR, pval
     except ZeroDivisionError:
         return 1, pval
 
