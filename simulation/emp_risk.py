@@ -12,7 +12,7 @@ import gzip, h5py, os
 from scipy import stats
 import statsmodels.api as sm
 import tqdm
-
+import gzip
 from scipy import stats
 from scipy.stats import chi2
 
@@ -23,7 +23,7 @@ from .true_risk import return_diploid_genos
 from .true_risk import calc_prs_tree, calc_prs_vcf
 
 def create_emp_prs(m,h2,n_admix,prefix,p,r2,
-    vcf_file = "admixed_data/output/admix_afr_amer.query.vcf",
+    vcf_file = "admixed_data/output/admix_afr_amer.query.vcf.gz",
     path_tree_CEU="trees/tree_CEU_GWAS_nofilt.hdf",
     path_tree_YRI="trees/tree_YRI_GWAS_nofilt.hdf",
     snp_weighting="ceu",snp_selection="ceu",
@@ -106,7 +106,7 @@ def calc_prs_vcf_la(vcf_file,weights,snps,n_admix,m,h2,r2,p,pop,prefix,num_sites
         sep="\t",index_col=0).index
     prs = np.zeros(n_admix)
     pbar = tqdm.tqdm(total=num_sites)
-    with open(vcf_file) as f:
+    with gzip.open(vcf_file,"rb") as f:
         ind=0
         for line in f:
             if line[0] != "#":
@@ -128,7 +128,7 @@ def calc_prs_vcf_la(vcf_file,weights,snps,n_admix,m,h2,r2,p,pop,prefix,num_sites
 
 def _ancestry_snps_admix(snps,prefix,m,h2,r2,p,pop):
     if not os.path.isfile(f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps.result.PRS"):
-        with open(f"{prefix}admixed_data/output/admix_afr_amer.result") as anc:
+        with gzip.open(f"{prefix}admixed_data/output/admix_afr_amer.result.gz","rb") as anc:
             print("Extracting proportion ancestry at PRS variants")
             for ind,line in enumerate(anc):
                 if ind == 0:
@@ -188,7 +188,7 @@ def _select_variants(sum_stats,tree,m,h2,p,r2,pop,prefix,max_distance,num_thread
 
 def _compute_maf_vcf(vcf_file,var_list):
     mafs = []
-    with open(vcf_file) as f:
+    with gzip.open(vcf_file,"rb") as f:
         ind = 0
         for line in f:
             if line[0] != "#":
