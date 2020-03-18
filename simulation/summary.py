@@ -79,12 +79,13 @@ def correlation(sim,true_prs,emp_prs,train_cases,train_controls,testing,anc,
             train_true_prs = true_prs[np.append(train_cases[pop],train_controls[pop])]
             train_emp_prs = emp_prs[np.append(train_cases[pop],train_controls[pop])]
             summary.loc["vals",f"train_{pop}_corr"] = stats.pearsonr(train_true_prs,train_emp_prs)[0]
-
+        
         test_true_prs = true_prs[testing[pop]]
         test_emp_prs = emp_prs[testing[pop]]
-        pin_df = pd.DataFrame(np.array([test_true_prs,test_emp_prs,anc["Prop_CEU"].values]).transpose(),columns = ["true","emp","anc"])
-        out_partial = pingouin.partial_corr(x="true",y="emp",covar="anc",data=pin_df)
-        summary.loc["vals",f"test_{pop}_corr_par"] = out_partial["r"].values[0]
+        if pop == "admix":
+            pin_df = pd.DataFrame(np.array([test_true_prs,test_emp_prs,anc["Prop_CEU"].values]).transpose(),columns = ["true","emp","anc"])
+            out_partial = pingouin.partial_corr(x="true",y="emp",covar="anc",data=pin_df)
+            summary.loc["vals",f"test_{pop}_corr_par"] = out_partial["r"].values[0]
         summary.loc["vals",f"test_{pop}_corr"] = stats.pearsonr(test_true_prs,test_emp_prs)[0]
 
         anc_inds[pop] = testing[pop]
