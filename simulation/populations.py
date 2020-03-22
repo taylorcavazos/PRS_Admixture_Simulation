@@ -48,8 +48,8 @@ def _simulate_admix(N_ADMIX,prefix):
 	os.system(f"./simulation/simulate-admixed -f {prefix}admixed_data/input/ceu_yri_genos.vcf.gz -m {prefix}admixed_data/input/ceu_yri_map.txt \
 				-G 8 -c 20 -g required_data/genetic_map_GRCh37_chr20_rfmix.txt -o {prefix}admixed_data/output/admix_afr_amer \
 				-s {N_ADMIX} --growth-rate=1.5")
-        os.system(f"gzip {prefix}admixed_data/output/admix_afr_amer.query.vcf")
-        os.system(f"gzip {prefix}admixed_data/output/admix_afr_amer.result")
+	os.system(f"gzip {prefix}admixed_data/output/admix_afr_amer.query.vcf")
+	os.system(f"gzip {prefix}admixed_data/output/admix_afr_amer.result")
 	return
 
 def _simulate_out_of_afr(N_CEU, N_YRI, N_CHB, N_MATE, rmap_file, prefix, chrom):
