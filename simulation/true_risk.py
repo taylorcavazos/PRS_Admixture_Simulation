@@ -1,5 +1,6 @@
 import numpy as np, pandas as pd
 import msprime,h5py
+import gzip
 
 def simulate_true_prs(m,h2,n_admix,prefix="output/sim1/",
                         path_tree_CEU="trees/tree_CEU_GWAS_nofilt.hdf",
@@ -65,7 +66,7 @@ def calc_prs_tree(var_dict,tree):
 
 def calc_prs_vcf(vcf_file,var_dict,n_admix):
     prs = np.zeros(n_admix)
-    with open(vcf_file) as f:
+    with gzip.open(vcf_file,"rt") as f:
         ind=0
         for line in f:
             if line[:6]== "#CHROM":
