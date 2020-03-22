@@ -54,10 +54,9 @@ def create_emp_prs(m,h2,n_admix,prefix,p,r2,
                                                                   num2decrease)
     snps = _select_variants(sumstats[snp_selection],trees[snp_selection],m,h2,
                            p,r2,snp_selection,prefix,ld_distance,num_threads)
-    _write_allele_freq_bins(sim,snps.astype(int),trees,prefix,snp_selection,prefix+vcf_file,m,h2,r2,p,train_cases)
     causal_inds =  np.linspace(0, trees["ceu"].num_sites, m, dtype=int,endpoint=False)
     _write_allele_freq_bins(sim,causal_inds,trees,prefix,snp_selection,prefix+vcf_file,m,h2,r2,p,train_cases,causal=True)
-    
+    _write_allele_freq_bins(sim,snps.astype(int),trees,prefix,snp_selection,prefix+vcf_file,m,h2,r2,p,train_cases) 
     _ancestry_snps_admix(snps,prefix,m,h2,r2,p,snp_selection)
 
     if os.path.isfile(f"{prefix}emp_prs/emp_prs_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{snp_selection}_"+\
@@ -106,7 +105,7 @@ def calc_prs_vcf_la(vcf_file,weights,snps,n_admix,m,h2,r2,p,pop,prefix,num_sites
         sep="\t",index_col=0).index
     prs = np.zeros(n_admix)
     pbar = tqdm.tqdm(total=num_sites)
-    with gzip.open(vcf_file,"rb") as f:
+    with gzip.open(vcf_file,"rt") as f:
         ind=0
         for line in f:
             if line[0] != "#":
@@ -128,7 +127,7 @@ def calc_prs_vcf_la(vcf_file,weights,snps,n_admix,m,h2,r2,p,pop,prefix,num_sites
 
 def _ancestry_snps_admix(snps,prefix,m,h2,r2,p,pop):
     if not os.path.isfile(f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps.result.PRS"):
-        with gzip.open(f"{prefix}admixed_data/output/admix_afr_amer.result.gz","rb") as anc:
+        with gzip.open(f"{prefix}admixed_data/output/admix_afr_amer.result.gz","rt") as anc:
             print("Extracting proportion ancestry at PRS variants")
             for ind,line in enumerate(anc):
                 if ind == 0:
@@ -188,7 +187,7 @@ def _select_variants(sum_stats,tree,m,h2,p,r2,pop,prefix,max_distance,num_thread
 
 def _compute_maf_vcf(vcf_file,var_list):
     mafs = []
-    with gzip.open(vcf_file,"rb") as f:
+    with gzip.open(vcf_file,"rt") as f:
         ind = 0
         for line in f:
             if line[0] != "#":
@@ -215,7 +214,7 @@ def _return_maf_group(mafs,n_sites):
 
 def _write_allele_freq_bins(sim,var_list,trees,prefix,snp_selection,vcf_file,
     m,h2,r2,p,train_cases,causal=False):
-    if not os.path.isfile(f"{prefix}summary/causal_maf_bins_m_{m}_h2_{h2}{sim}.txt"):
+    if not os.path.isfile(f"{prefix}summary/emp_maf_bins_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{snp_selection}_snps_{len(train_cases)}cases_{sim}.txt"):
         maf_ceu = _compute_maf(trees["ceu"],prefix,"ceu")[var_list]
         maf_yri = _compute_maf(trees["yri"],prefix,"yri")[var_list]
         maf_admix = _compute_maf_vcf(vcf_file,var_list)
@@ -228,10 +227,10 @@ def _write_allele_freq_bins(sim,var_list,trees,prefix,snp_selection,vcf_file,
 
         if not causal:
             df.to_csv(f"{prefix}summary/emp_maf_bins_m_{m}_h2_{h2}_r2_{r2}_p_{p}"+\
-                        f"_{snp_selection}_snps_{len(train_cases[snp_selection])}cases"+\
+                        f"_{snp_selection}_snps_{len(train_cases[snp_selection])}cases_"+\
                         f"{sim}.txt",sep="\t")
         else:
-            df.to_csv(f"{prefix}summary/causal_maf_bins_m_{m}_h2_{h2}{sim}.txt",sep="\t")
+            df.to_csv(f"{prefix}summary/causal_maf_bins_m_{m}_h2_{h2}_{sim}.txt",sep="\t")
     return
 
 def _compute_summary_stats(m,h2,tree,train_cases,train_controls,pop,prefix):
