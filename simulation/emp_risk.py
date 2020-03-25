@@ -53,7 +53,7 @@ def create_emp_prs(m,h2,n_admix,prefix,p,r2,
                                                                   path_tree_YRI,prefix,m,h2,
                                                                   num2decrease)
     snps = _select_variants(sumstats[snp_selection],trees[snp_selection],m,h2,
-                           p,r2,snp_selection,prefix,ld_distance,num_threads)
+                           p,r2,snp_selection,prefix,ld_distance,num_threads,num2decrease)
     causal_inds =  np.linspace(0, trees["ceu"].num_sites, m, dtype=int,endpoint=False)
     _write_allele_freq_bins(sim,causal_inds,trees,prefix,snp_selection,prefix+vcf_file,m,h2,r2,p,train_cases,causal=True)
     _write_allele_freq_bins(sim,snps.astype(int),trees,prefix,snp_selection,prefix+vcf_file,m,h2,r2,p,train_cases) 
@@ -171,7 +171,7 @@ def _perform_meta(train_cases,m,h2,prefix):
 
     return pd.read_csv(prefix+f"emp_prs/meta_m_{m}_h2_{h2}_casesCEU_{len(train_cases['ceu'])}_casesYRI_{len(train_cases['yri'])}.txt",sep="\t",index_col=0)
 
-def _select_variants(sum_stats,tree,m,h2,p,r2,pop,prefix,max_distance,num_threads):
+def _select_variants(sum_stats,tree,m,h2,p,r2,pop,prefix,max_distance,num_threads,num2decrease):
     print("-----------------------------------")
     print("Selecting variants for PRS building")
     print("-----------------------------------")
@@ -180,7 +180,7 @@ def _select_variants(sum_stats,tree,m,h2,p,r2,pop,prefix,max_distance,num_thread
     prs_vars = sum_stats[sum_stats["p-value"] < p].sort_values(by=["p-value"]).index
     print(f"# variants with p < {p}: {len(prs_vars)}")
     clumped_prs_vars = _ld_clump(tree,prs_vars,m,h2,pop,r2,p,
-                                 prefix,max_distance,num_threads)
+                                 prefix,max_distance,num_threads,num2decrease)
     print(f"# variants after clumping: {len(clumped_prs_vars)}")
     print("-----------------------------------")
     return clumped_prs_vars
@@ -285,8 +285,10 @@ def _plot_qq(sum_stats,prefix,outfile):
 
 
 
-def _ld_clump(tree,variants,m,h2,pop,r2,p,prefix,max_distance,num_threads):
-    if not os.path.isfile(prefix+f"emp_prs/clumped_prs_vars_m_{m}_h2_{h2}_pop_{pop}_r2_{r2}_p{p}.txt"):
+def _ld_clump(tree,variants,m,h2,pop,r2,p,prefix,max_distance,num_threads,num2decrease):
+    if num2decrease == None: path = prefix+f"emp_prs/clumped_prs_vars_m_{m}_h2_{h2}_pop_{pop}_r2_{r2}_p{p}.txt"
+    else: path = prefix+f"emp_prs/clumped_prs_vars_m_{m}_h2_{h2}_pop_{pop}_r2_{r2}_p{p}_cases_{num2decrease}.txt"
+    if not os.path.isfile(path):
         print("Clumping variants...")
         var2mut,mut2var = _get_var_mut_maps(tree)
         tree_ld = tree.simplify(filter_sites=True)
@@ -300,10 +302,10 @@ def _ld_clump(tree,variants,m,h2,pop,r2,p,prefix,max_distance,num_threads):
                     add = False
                 i+=1
             if add: clumped_variants.append(variants[v])
-        np.savetxt(prefix+f"emp_prs/clumped_prs_vars_m_{m}_h2_{h2}_pop_{pop}_r2_{r2}_p{p}.txt",clumped_variants)
+        np.savetxt(path,clumped_variants)
         return np.array(clumped_variants)
     else: 
-        return np.loadtxt(prefix+f"emp_prs/clumped_prs_vars_m_{m}_h2_{h2}_pop_{pop}_r2_{r2}_p{p}.txt")
+        return np.loadtxt(path)
 
 def _get_var_mut_maps(tree):
     var2mut, mut2var = {}, {}
