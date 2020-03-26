@@ -57,7 +57,7 @@ def create_emp_prs(m,h2,n_admix,prefix,p,r2,
     causal_inds =  np.linspace(0, trees["ceu"].num_sites, m, dtype=int,endpoint=False)
     _write_allele_freq_bins(sim,causal_inds,trees,prefix,snp_selection,prefix+vcf_file,m,h2,r2,p,train_cases,causal=True)
     _write_allele_freq_bins(sim,snps.astype(int),trees,prefix,snp_selection,prefix+vcf_file,m,h2,r2,p,train_cases) 
-    _ancestry_snps_admix(snps,prefix,m,h2,r2,p,snp_selection)
+    _ancestry_snps_admix(snps,prefix,m,h2,r2,p,snp_selection,num2decrease)
 
     if os.path.isfile(f"{prefix}emp_prs/emp_prs_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{snp_selection}_"+\
                       f"snps_{len(train_cases[snp_selection])}cases_{snp_weighting}_weights_"+\
@@ -98,9 +98,10 @@ def create_emp_prs(m,h2,n_admix,prefix,p,r2,
             return
     return
 
-def calc_prs_vcf_la(vcf_file,weights,snps,n_admix,m,h2,r2,p,pop,prefix,num_sites):
-    anc = pd.read_csv(f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps.result.PRS",
-                        sep="\t",index_col=0)
+def calc_prs_vcf_la(vcf_file,weights,snps,n_admix,m,h2,r2,p,pop,prefix,num_sites,num2decrease):
+    if num2decrease==None: anc_file = f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps.result.PRS"
+    else: anc_file = f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps_{num2decrease}.result.PRS"
+    anc = pd.read_csv(anc_file,sep="\t",index_col=0)
     sample_ids = pd.read_csv(f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps.prop.anc.PRS",
         sep="\t",index_col=0).index
     prs = np.zeros(n_admix)
@@ -125,8 +126,10 @@ def calc_prs_vcf_la(vcf_file,weights,snps,n_admix,m,h2,r2,p,pop,prefix,num_sites
                 pbar.update(1)
     return prs
 
-def _ancestry_snps_admix(snps,prefix,m,h2,r2,p,pop):
-    if not os.path.isfile(f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps.result.PRS"):
+def _ancestry_snps_admix(snps,prefix,m,h2,r2,p,pop,num2decrease):
+    if num2decrease==None: outfile = f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps.result.PRS"
+    else: outfile = f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps_{num2decrease}.result.PRS"
+    if not os.path.isfile(outfile):
         with gzip.open(f"{prefix}admixed_data/output/admix_afr_amer.result.gz","rt") as anc:
             print("Extracting proportion ancestry at PRS variants")
             for ind,line in enumerate(anc):
@@ -153,8 +156,8 @@ def _ancestry_snps_admix(snps,prefix,m,h2,r2,p,pop):
         anc_prop["Prop_YRI"] = counts_YRI/(2*(len(snps)-1))
         anc_prop["Prop_CEU"] = counts_CEU/(2*(len(snps)-1))
 
-        anc_prop.to_csv(f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps.prop.anc.PRS",sep="\t")
-        anc_prs.to_csv(f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps.result.PRS",sep="\t")
+        anc_prop.to_csv(outfile.split(".result.PRS")[0]+".prop.anc.PRS",sep="\t")
+        anc_prs.to_csv(outfile,sep="\t")
     return
 
 def _perform_meta(train_cases,m,h2,prefix):
