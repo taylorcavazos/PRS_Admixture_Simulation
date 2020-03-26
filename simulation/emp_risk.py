@@ -91,7 +91,7 @@ def create_emp_prs(m,h2,n_admix,prefix,p,r2,
             prs_yri = calc_prs_tree(dict(zip(snps,weights["yri"])),trees["yri"])
             print("..... for the admixed population")
             
-            prs_admix = calc_prs_vcf_la(prefix+vcf_file,weights,snps,n_admix,m,h2,r2,p,snp_selection,prefix,trees["ceu"].num_sites)
+            prs_admix = calc_prs_vcf_la(prefix+vcf_file,weights,snps,n_admix,m,h2,r2,p,snp_selection,prefix,trees["ceu"].num_sites,num2decrease)
             prs_all = np.concatenate((prs_ceu,prs_yri,prs_admix),axis=None)
             _write_output(prs_all,labels,prefix,m,h2,r2,p,snp_selection,snp_weighting,
                     len(train_cases[snp_weighting]),len(train_cases[snp_selection]))
