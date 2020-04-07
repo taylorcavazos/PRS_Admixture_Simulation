@@ -128,8 +128,7 @@ def correlation_plot(summary,prefix,true_prs,emp_prs,anc_inds,train_cases,snp_se
 
 
 def load_data(m,h2,r2,p,prefix,snp_selection,snp_weight,num2decrease):
-    anc = pd.read_csv(f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{snp_selection}_snps.prop.anc.PRS",
-                        sep="\t")
+    anc = pd.read_csv(f"{prefix}admixed_data/output/admix_afr_amer.prop.anc",sep="\t")
 
     if num2decrease == None:
         f = h5py.File(f'{prefix}true_prs/prs_m_{m}_h2_{h2}.hdf5', 'r')

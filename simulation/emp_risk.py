@@ -57,7 +57,6 @@ def create_emp_prs(m,h2,n_admix,prefix,p,r2,
     causal_inds =  np.linspace(0, trees["ceu"].num_sites, m, dtype=int,endpoint=False)
     _write_allele_freq_bins(sim,causal_inds,trees,prefix,snp_selection,prefix+vcf_file,m,h2,r2,p,train_cases,causal=True)
     _write_allele_freq_bins(sim,snps.astype(int),trees,prefix,snp_selection,prefix+vcf_file,m,h2,r2,p,train_cases) 
-    _ancestry_snps_admix(snps,prefix,m,h2,r2,p,snp_selection,num2decrease)
 
     if os.path.isfile(f"{prefix}emp_prs/emp_prs_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{snp_selection}_"+\
                       f"snps_{len(train_cases[snp_selection])}cases_{snp_weighting}_weights_"+\
@@ -81,6 +80,7 @@ def create_emp_prs(m,h2,n_admix,prefix,p,r2,
             _write_output(prs_all,labels,prefix,m,h2,r2,p,snp_selection,snp_weighting,
                     len(train_cases[snp_weighting]),len(train_cases[snp_selection]))
         else:
+            _ancestry_snps_admix(snps,prefix,m,h2,r2,p,snp_selection,num2decrease)
             weights = {"ceu":np.log(sumstats["ceu"].reindex(snps,fill_value=1)["OR"]),
                        "yri":np.log(sumstats["yri"].reindex(snps,fill_value=1)["OR"]),
                        "meta":np.log(sumstats["meta"].reindex(snps,fill_value=1)["OR"])}
@@ -102,7 +102,7 @@ def calc_prs_vcf_la(vcf_file,weights,snps,n_admix,m,h2,r2,p,pop,prefix,num_sites
     if num2decrease==None: anc_file = f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps.result.PRS"
     else: anc_file = f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps_{num2decrease}.result.PRS"
     anc = pd.read_csv(anc_file,sep="\t",index_col=0)
-    sample_ids = pd.read_csv(f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps.prop.anc.PRS",
+    sample_ids = pd.read_csv(f"{prefix}admixed_data/output/admix_afr_amer.prop.anc",
         sep="\t",index_col=0).index
     prs = np.zeros(n_admix)
     pbar = tqdm.tqdm(total=num_sites)
@@ -136,27 +136,9 @@ def _ancestry_snps_admix(snps,prefix,m,h2,r2,p,pop,num2decrease):
                 if ind == 0:
                     anc_prs = pd.DataFrame(columns=line.split("\n")[0].split("\t")[2:])
 
-                    sample_haps = line.split("\t")[2:]
-                    samples = [sample_haps[i].split(".")[0] for i in range(0,len(sample_haps),2)]
-                    anc_prop = pd.DataFrame(index=samples,columns=["Prop_CEU","Prop_YRI"])
-                    counts_YRI = np.zeros(len(samples))
-                    counts_CEU = np.zeros(len(samples))
-
                 elif ind-1 in snps:
                     anc_prs.loc[ind-1,:] = line.split("\n")[0].split("\t")[2:]
 
-                    haplo_anc = np.array(line.split("\t")[2:]).astype(int)
-                    YRI_arr = haplo_anc-1
-                    line_counts_YRI = np.add.reduceat(YRI_arr, np.arange(0, len(YRI_arr), 2))
-                    CEU_arr = np.absolute(1-YRI_arr)
-                    line_counts_CEU = np.add.reduceat(CEU_arr, np.arange(0, len(CEU_arr), 2))
-                    counts_YRI = counts_YRI+line_counts_YRI
-                    counts_CEU = counts_CEU+line_counts_CEU
-        
-        anc_prop["Prop_YRI"] = counts_YRI/(2*(len(snps)-1))
-        anc_prop["Prop_CEU"] = counts_CEU/(2*(len(snps)-1))
-
-        anc_prop.to_csv(outfile.split(".result.PRS")[0]+".prop.anc.PRS",sep="\t")
         anc_prs.to_csv(outfile,sep="\t")
     return
 

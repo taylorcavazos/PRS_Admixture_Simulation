@@ -49,6 +49,7 @@ def simulate_true_prs(m,h2,n_admix,prefix="output/sim1/",
                                 prs_comb,np.array(list(var_dict.values())),
                                 prefix,samples_admix)
     _split_case_control_all_pops(m,h2,prs_norm, sample_ids, n_admix,prefix)
+    _calc_prop_total_anc(prefix)
 
     return
 
@@ -157,3 +158,30 @@ def _split_case_control_all_pops(m,h2,G,labels,N_ADMIX,prefix):
         f.create_dataset("train_controls_yri",train_control_yri.shape,dtype=int,data=train_control_yri)
         f.create_dataset("test_data",test_w_admix.shape,dtype=int,data=test_w_admix)
         f.create_dataset("E",E.shape,dtype=float,data=E)
+
+def _calc_prop_total_anc(prefix):
+    if not os.path.isfile(f"{prefix}admixed_data/output/admix_afr_amer.prop.anc"):
+        with gzip.open(f"{prefix}admixed_data/output/admix_afr_amer.result.gz","rt") as anc:
+            print("Extracting proportion ancestry at PRS variants")
+            for ind,line in enumerate(anc):
+                if ind == 0:
+                    sample_haps = line.split("\t")[2:]
+                    samples = [sample_haps[i].split(".")[0] for i in range(0,len(sample_haps),2)]
+                    anc_prop = pd.DataFrame(index=samples,columns=["Prop_CEU","Prop_YRI"])
+                    counts_YRI = np.zeros(len(samples))
+                    counts_CEU = np.zeros(len(samples))
+
+                else:
+                    haplo_anc = np.array(line.split("\t")[2:]).astype(int)
+                    YRI_arr = haplo_anc-1
+                    line_counts_YRI = np.add.reduceat(YRI_arr, np.arange(0, len(YRI_arr), 2))
+                    CEU_arr = np.absolute(1-YRI_arr)
+                    line_counts_CEU = np.add.reduceat(CEU_arr, np.arange(0, len(CEU_arr), 2))
+                    counts_YRI = counts_YRI+line_counts_YRI
+                    counts_CEU = counts_CEU+line_counts_CEU
+        
+        anc_prop["Prop_YRI"] = counts_YRI/(2*(len(snps)-1))
+        anc_prop["Prop_CEU"] = counts_CEU/(2*(len(snps)-1))
+
+        anc_prop.to_csv(f"{prefix}admixed_data/output/admix_afr_amer.prop.anc",sep="\t")
+    return
