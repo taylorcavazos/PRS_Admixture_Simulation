@@ -44,7 +44,7 @@ parser.add_argument("--snp_weighting",help="Weighting strategy for PRS building.
 	choices={"ceu","yri","meta","la"}, default="ceu")
 parser.add_argument("--snp_selection",help="SNP selection strategy for PRS building. Choice between using significant SNPs from a European (ceu) or African (yri) GWAS.", type=str, 
 	choices={"ceu","yri","meta"}, default="ceu")
-parser.add_argument("--pvalue",help="pvalue cutoff to be used for LD clumping", type=int, default=P)
+parser.add_argument("--pvalue",help="pvalue cutoff to be used for LD clumping", type=float, default=P)
 parser.add_argument("--ld_r2",help="r2 cutoff to be used for LD clumping", type=float, default=R2)
 parser.add_argument("--decrease_samples_yri",help="# of cases used in YRI analysis to represent the lack of non-European data", type=int, default=None)
 parser.add_argument("--output_dir",help="location for output data to be written", type=str, default="output/")
