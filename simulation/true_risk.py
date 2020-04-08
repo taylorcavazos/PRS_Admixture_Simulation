@@ -5,7 +5,7 @@ import gzip
 def simulate_true_prs(m,h2,n_admix,prefix="output/sim1/",
                         path_tree_CEU="trees/tree_CEU_GWAS_nofilt.hdf",
                         path_tree_YRI="trees/tree_YRI_GWAS_nofilt.hdf",
-                        vcf_file="admixed_data/output/admix_afr_amer.query.vcf"):
+                        vcf_file="admixed_data/output/admix_afr_amer.query.vcf.gz"):
     """
     Functions to create true polygenic risk score for simulated data and 
     select cases+controls in the data.
