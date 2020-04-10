@@ -73,7 +73,12 @@ def correlation(sim,true_prs,emp_prs,train_cases,train_controls,testing,anc,
                                                     "train_yri_corr","test_yri_corr",
                                                     "test_admix_corr","test_admix_corr_par",
                                                     "admix_low_ceu_corr",
-                                                    "admix_mid_ceu_corr","admix_high_ceu_corr"])
+                                                    "admix_mid_ceu_corr","admix_high_ceu_corr",
+							"train_ceu_p","test_ceu_p",
+                                                    "train_yri_p","test_yri_p",
+                                                    "test_admix_p",
+                                                    "admix_low_ceu_p",
+                                                    "admix_mid_ceu_p","admix_high_ceu_p"])
     for pop in ["ceu","yri","admix"]:
         if pop != "admix":
             train_true_prs = true_prs[np.append(train_cases[pop],train_controls[pop])]
@@ -87,6 +92,7 @@ def correlation(sim,true_prs,emp_prs,train_cases,train_controls,testing,anc,
             out_partial = pingouin.partial_corr(x="true",y="emp",covar="anc",data=pin_df)
             summary.loc["vals",f"test_{pop}_corr_par"] = out_partial["r"].values[0]
         summary.loc["vals",f"test_{pop}_corr"] = stats.pearsonr(test_true_prs,test_emp_prs)[0]
+        summary.loc["vals",f"test_{pop}_p"] = stats.pearsonr(test_true_prs,test_emp_prs)[1]
 
         anc_inds[pop] = testing[pop]
 
@@ -95,7 +101,8 @@ def correlation(sim,true_prs,emp_prs,train_cases,train_controls,testing,anc,
         testing_prop_admix = testing["admix"][prop_admix]
         summary.loc["vals",f"admix_{prop[2]}_ceu_corr"] = stats.pearsonr(true_prs[testing_prop_admix],
                                                                           emp_prs[testing_prop_admix])[0]
-
+        summary.loc["vals",f"admix_{prop[2]}_ceu_p"] = stats.pearsonr(true_prs[testing_prop_admix],
+                                                                          emp_prs[testing_prop_admix])[1]
         anc_inds[prop[2]] = testing["admix"][prop_admix]
 
     summary.to_csv(f"{prefix}summary/prs_corr_m_{m}_h2_{h2}_r2_{r2}_p_{p}"+\
