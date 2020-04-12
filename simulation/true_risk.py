@@ -1,7 +1,7 @@
 import numpy as np, pandas as pd
 import msprime,h5py
 import gzip
-
+import os
 def simulate_true_prs(m,h2,n_admix,prefix="output/sim1/",
                         path_tree_CEU="trees/tree_CEU_GWAS_nofilt.hdf",
                         path_tree_YRI="trees/tree_YRI_GWAS_nofilt.hdf",
