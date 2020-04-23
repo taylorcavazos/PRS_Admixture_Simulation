@@ -97,7 +97,7 @@ def correlation(sim,true_prs,emp_prs,train_cases,train_controls,testing,anc,
         anc_inds[pop] = testing[pop]
 
     for prop in [(0,0.2,"low"),(0.2,0.8,"mid"),(0.8,1,"high")]:
-        prop_admix = anc[(anc["Prop_CEU"]>prop[0])&(anc["Prop_CEU"]<=prop[1])].index
+        prop_admix = anc[(anc["Prop_CEU"]>=prop[0])&(anc["Prop_CEU"]<prop[1])].index
         testing_prop_admix = testing["admix"][prop_admix]
         summary.loc["vals",f"admix_{prop[2]}_ceu_corr"] = stats.pearsonr(true_prs[testing_prop_admix],
                                                                           emp_prs[testing_prop_admix])[0]
