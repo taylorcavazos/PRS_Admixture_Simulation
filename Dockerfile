@@ -1,6 +1,10 @@
+FROM ubuntu:latest
 
-FROM python:3
-RUN pip install -r requirements.txt
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential r-base r-cran-randomforest python3.6 python3-pip python3-setuptools python3-dev
+
+RUN pip3 install -r requirements.txt
 
 RUN "git clone https://github.com/slowkoni/rfmix.git"
 RUN "cd rfmix"
