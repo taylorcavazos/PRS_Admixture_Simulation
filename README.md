@@ -1,4 +1,4 @@
-# Local_Ancestry_PRS  
+# PRS Admixture Simulation 
 
 A repository for exploring PRS weighting and snp selection strategies for generalizing polygenic risk scores in admixed individuals.
 
