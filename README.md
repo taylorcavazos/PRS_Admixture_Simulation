@@ -3,7 +3,7 @@
 A repository for exploring PRS weighting and snp selection strategies for generalizing polygenic risk scores in admixed individuals.
 
 
-These functions simulate European, African, and Admixed individuals using [msprime](https://github.com/tskit-dev/msprime) and rfmix's [simulate](https://github.com/tskit-dev/msprime) function. Then a true polygenic risk score is constructed as described by [Martin et. al. 2017, AJHG](https://www.ncbi.nlm.nih.gov/pubmed/28366442). GWAS estimated polygenic risk scores can then be tested using the P+T approach. SNPs can be selected based on summary statistics from a European or African population and can additionally come from a fixed-effects meta analysis of the two populations. SNPs can be weighted using the same stragegies as previously described or by using weights specific to the local ancestry at a given PRS locus.
+These functions simulate European, African, and Admixed individuals using [msprime](https://github.com/tskit-dev/msprime) and rfmix's [simulate](https://github.com/tskit-dev/msprime) function. Then a true polygenic risk score is constructed as described by [Martin et. al. 2017, AJHG](https://www.ncbi.nlm.nih.gov/pubmed/28366442). GWAS estimated polygenic risk scores are constructed by P+T with SNPs selected based on summary statistics from a European or African population of a Fixed-Effects meta of both. SNPs are weighted using the same stragegies or by using weights specific to the local ancestry at a given PRS locus.
 
 ## Getting Started 
 To run the functions described above follow the below instructions:
