@@ -9,8 +9,8 @@ These functions simulate European, African, and Admixed individuals using [mspri
 To run the functions described above follow the below instructions:
 ```
 # Main package installation
-git clone https://github.com/taylorcavazos/Local_Ancestry_PRS.git
-cd Local_Ancestry_PRS
+git clone https://github.com/taylorcavazos/PRS_Admixture_Simulation.git
+cd PRS_Admixture_Simulation
 pip install requirements.txt
 
 # Rfmix simulate installation and set-up
