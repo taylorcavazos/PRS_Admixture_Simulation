@@ -7,6 +7,13 @@ These functions simulate European, African, and Admixed individuals using [mspri
 
 ## Getting Started 
 To run the functions described above follow the below instructions:
+
+#### Installation with docker (best approach)
+```
+# Todo
+```
+
+#### Manual method
 ```
 # Main package installation
 git clone https://github.com/taylorcavazos/PRS_Admixture_Simulation.git
