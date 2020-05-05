@@ -81,11 +81,3 @@ optional arguments:
                         location for output data to be written
 ```
 
-## Example run  
-A possible simulation run is shown below:
-```
-python run_simulation.py --sim 1 --snp_selection ceu --snp_weighting meta
-```
-
-
-
