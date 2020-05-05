@@ -8,13 +8,15 @@ These functions simulate European, African, and Admixed individuals using [mspri
 ## Getting Started 
 To run the functions described above follow the below instructions:
 
+### Main package installation
 ```
-# Main package installation
 git clone https://github.com/taylorcavazos/PRS_Admixture_Simulation.git
 cd PRS_Admixture_Simulation
 pip install requirements.txt
+```
 
-# Rfmix simulate installation and set-up
+### Rfmix simulate installation and set-up
+```
 git clone https://github.com/slowkoni/rfmix.git
 cd rfmix
 autoreconf --force --install
@@ -24,6 +26,8 @@ cd ..
 mv rfmix/simulate simulation/simulate-admixed
 rm -rf rfmix
 ```
+
+This package also requires R>=3.6.0. Installation instructions can be found [here](https://www.r-project.org).
 
 ## Simulation parameters  
 All parameters from the simulation can be obtained by `python run_simulation.py --help`. Output provided below:
@@ -60,7 +64,7 @@ optional arguments:
 ## Example run  
 A possible simulation run is shown below:
 ```
-python run_simulation.py --sim 1 --snp_selection ceu --snp_weighting meta
+python3 run_simulation.py --sim 1 --snp_selection ceu --snp_weighting meta
 ```
 
 
