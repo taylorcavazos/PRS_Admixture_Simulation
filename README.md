@@ -27,7 +27,7 @@ mv rfmix/simulate simulation/simulate-admixed
 rm -rf rfmix
 ```
 
-This package also requires R>=3.6.0. Installation instructions can be found [here](https://www.r-project.org).
+This package also requires R(>=3.6.0). Installation instructions can be found [here](https://www.r-project.org).
 
 ## Simulation parameters  
 All parameters from the simulation can be obtained by `python run_simulation.py --help`. Output provided below:
