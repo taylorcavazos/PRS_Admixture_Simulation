@@ -50,7 +50,7 @@ python run_simulation.py --sim 1 --snp_selection ceu --snp_weighting ceu
 ```
 
 ## Simulation parameters  
-All parameters from the simulation can be obtained by `python run_simulation.py --help`. Output provided below:
+All parameters from the simulation can be obtained by `docker run --rm tcavazos/prs-admix-sim python run_simulation.py --help`. Output provided below:
 ```
 Functions for simulating European, African, and Admixed populations and
 testing PRS building strategies for better generalization to diverse

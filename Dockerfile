@@ -20,4 +20,4 @@ RUN git clone https://github.com/slowkoni/rfmix.git &&\
 	mv rfmix/simulate simulation/simulate-admixed &&\
 	rm -rf rfmix
 
-ENTRYPOINT ["python run_simulation.py"] 
+ENTRYPOINT ["python", "./run_simulation.py"] 

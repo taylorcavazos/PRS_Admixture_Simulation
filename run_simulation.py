@@ -5,7 +5,8 @@ import os
 
 def main(sim,m,h2,weight,snp,p,r2,cases_yri,outdir,threads):
 	# PART 0: CREATE DIRECTORIES NEEDED FOR SIMULATION
-	os.system(f"mkdir -p {outdir}sim{sim}"+"/{trees,admixed_data/{input,output},true_prs,emp_prs,summary}")
+	for dirs in ["trees","admixed_data/input","admixed_data/output","true_prs","emp_prs","summary"]:
+		os.system(f"mkdir -p {outdir}sim{sim}/{dirs}")
 	
 	# PART 1: SIMULATE POPULATIONS
 
