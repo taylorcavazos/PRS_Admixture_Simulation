@@ -30,7 +30,7 @@ cd ..
 mv rfmix/simulate simulation/simulate-admixed
 rm -rf rfmix
 ```
-Additional requirements if using manual installation: R(>=3.6.0) and python(>=3.7.3)
+Additional requirements if using manual installation: R(>=3.5.0) and python(>=3.7.3)
 
 ## Simulation parameters  
 All parameters from the simulation can be obtained by `python run_simulation.py --help`. Output provided below:
