@@ -3,10 +3,10 @@ Global simulation parameters
 """
 
 # Population sizes
-N_CEU = 2100#201000
-N_YRI = 2100#201000
-N_MATE = 100#1000
-N_ADMIX = 500#5000
+N_CEU = 201000
+N_YRI = 201000
+N_MATE = 1000
+N_ADMIX = 5000
 
 # Chromosome recombination file
 rmap_file = "required_data/genetic_map_GRCh37_chr20.txt"
