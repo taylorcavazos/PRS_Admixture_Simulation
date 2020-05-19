@@ -13,7 +13,6 @@ To run the functions described above follow the below instructions:
 # Main package installation
 git clone https://github.com/taylorcavazos/PRS_Admixture_Simulation.git
 cd PRS_Admixture_Simulation
-pip install requirements.txt
 
 # Rfmix simulate installation and set-up
 git clone https://github.com/slowkoni/rfmix.git
