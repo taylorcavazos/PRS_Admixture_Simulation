@@ -49,7 +49,7 @@ parser.add_argument("--pvalue",help="pvalue cutoff to be used for LD clumping", 
 parser.add_argument("--ld_r2",help="r2 cutoff to be used for LD clumping", type=float, default=R2)
 parser.add_argument("--decrease_samples_yri",help="# of cases used in YRI analysis to represent the lack of non-European data", type=int, default=None)
 parser.add_argument("--output_dir",help="location for output data to be written", type=str, default="output/")
-parser.add_argument("--threads",help="# of threads to use for parallel processing", type=int, default=8)
+parser.add_argument("--threads",help="# of threads to use for parallel processing", type=int, default=1)
 
 args = parser.parse_args()
 if args.output_dir[-1]!="/": args.output_dir+="/"

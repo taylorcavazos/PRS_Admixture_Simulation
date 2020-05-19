@@ -55,12 +55,12 @@ optional arguments:
                         outputs.
   --m M                 # of causal variants to assume
   --h2 H2               heritability to assume
-  --snp_weighting {ceu,yri,la,meta}
+  --snp_weighting {la,yri,ceu,meta}
                         Weighting strategy for PRS building. Can use weights
                         from European (ceu) or African (yri) GWAS as well as
                         weights from a fixed-effects meta analysis of both
                         GWAS (meta) or local-ancestry specific weights (la).
-  --snp_selection {ceu,yri,meta}
+  --snp_selection {yri,ceu,meta}
                         SNP selection strategy for PRS building. Choice
                         between using significant SNPs from a European (ceu)
                         or African (yri) GWAS.
@@ -71,5 +71,6 @@ optional arguments:
                         of non-European data
   --output_dir OUTPUT_DIR
                         location for output data to be written
+  --threads THREADS     # of threads to use for parallel processing
 ```
 
