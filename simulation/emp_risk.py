@@ -6,6 +6,7 @@ and finally change SNP selection (future use)
 """
 
 import numpy as np, pandas as pd, math
+np.seterr(divide='ignore', invalid='ignore')
 import msprime
 import sys, threading
 import gzip, h5py, os

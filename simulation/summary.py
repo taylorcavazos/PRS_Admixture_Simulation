@@ -2,10 +2,8 @@ import numpy as np
 import pandas as pd
 import h5py
 import os
-
 import seaborn as sns
 import matplotlib.pyplot as plt
-import pingouin
 from scipy import stats
 
 from .emp_risk import _decrease_training_samples
@@ -71,7 +69,7 @@ def correlation(sim,true_prs,emp_prs,train_cases,train_controls,testing,anc,
 
     summary = pd.DataFrame(index=["vals"], columns=["train_ceu_corr","test_ceu_corr",
                                                     "train_yri_corr","test_yri_corr",
-                                                    "test_admix_corr","test_admix_corr_par",
+                                                    "test_admix_corr",
                                                     "admix_low_ceu_corr",
                                                     "admix_mid_ceu_corr","admix_high_ceu_corr",
 							"train_ceu_p","test_ceu_p",
@@ -87,10 +85,6 @@ def correlation(sim,true_prs,emp_prs,train_cases,train_controls,testing,anc,
         
         test_true_prs = true_prs[testing[pop]]
         test_emp_prs = emp_prs[testing[pop]]
-        if pop == "admix":
-            pin_df = pd.DataFrame(np.array([test_true_prs,test_emp_prs,anc["Prop_CEU"].values]).transpose(),columns = ["true","emp","anc"])
-            out_partial = pingouin.partial_corr(x="true",y="emp",covar="anc",data=pin_df)
-            summary.loc["vals",f"test_{pop}_corr_par"] = out_partial["r"].values[0]
         summary.loc["vals",f"test_{pop}_corr"] = stats.pearsonr(test_true_prs,test_emp_prs)[0]
         summary.loc["vals",f"test_{pop}_p"] = stats.pearsonr(test_true_prs,test_emp_prs)[1]
 

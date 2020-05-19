@@ -34,6 +34,7 @@ def simulate_populations(N_CEU, N_YRI, N_MATE, N_ADMIX, rmap_file, N_CHB=0,
 
 	"""
 	_simulate_out_of_afr(N_CEU,N_YRI,N_CHB,N_MATE,rmap_file,prefix,chrom)
+	print("Simulating admixed populations")
 	_simulate_admix(N_ADMIX,prefix)
 
 	return None
@@ -59,7 +60,6 @@ def _simulate_out_of_afr(N_CEU, N_YRI, N_CHB, N_MATE, rmap_file, prefix, chrom):
 	print("--------------------")
 	print("Number CEU: {}".format(N_CEU))
 	print("Number YRI: {}".format(N_YRI))
-	print("Number CHB: {}".format(N_CHB))
 	print("Number for mating: {}".format(N_MATE))
 	print("--------------------")
 

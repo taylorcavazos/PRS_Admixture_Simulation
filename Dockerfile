@@ -6,6 +6,7 @@ WORKDIR /app
 ADD . /app
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV OUTDATED_IGNORE=1
 RUN apt-get update -qq -y && apt-get upgrade -qq -y
 RUN apt-get --assume-yes install git r-base libgsl0-dev gcc
 

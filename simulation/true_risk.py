@@ -180,8 +180,8 @@ def _calc_prop_total_anc(prefix):
                     counts_YRI = counts_YRI+line_counts_YRI
                     counts_CEU = counts_CEU+line_counts_CEU
         
-        anc_prop["Prop_YRI"] = counts_YRI/(2*(len(snps)-1))
-        anc_prop["Prop_CEU"] = counts_CEU/(2*(len(snps)-1))
+        anc_prop["Prop_YRI"] = counts_YRI/(2*(ind-1))
+        anc_prop["Prop_CEU"] = counts_CEU/(2*(ind-1))
 
         anc_prop.to_csv(f"{prefix}admixed_data/output/admix_afr_amer.prop.anc",sep="\t")
     return
