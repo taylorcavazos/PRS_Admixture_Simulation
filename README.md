@@ -8,19 +8,7 @@ These functions simulate European, African, and Admixed individuals using [mspri
 ## Getting Started 
 To run the functions described above follow the below instructions:
 
-#### Installation with docker (recommended)
-To get started, install [docker](https://www.docker.com) and then run the following commands in your terminal:
-```
-# Clone the github repo
-git clone https://github.com/taylorcavazos/PRS_Admixture_Simulation.git
-cd PRS_Admixture_Simulation
-
-# Docker set-up
-docker # Test installation was successful. Docker usage should be displayed!
-docker build -t tcavazos/prs-admix-sim . # Build docker image from repo.
-```
-
-#### Manual package installation
+#### Package installation
 ```
 # Main package installation
 git clone https://github.com/taylorcavazos/PRS_Admixture_Simulation.git
@@ -36,17 +24,21 @@ make
 cd ..
 mv rfmix/simulate simulation/simulate-admixed
 rm -rf rfmix
+
+# Set up virtual environment (recommended: conda) 
+conda create --name prs_sim python=3.7
+conda activate prs_sim
+conda install --yes --file requirements.txt
+conda install -c conda-forge r=3.6.0
+conda deactivate
 ```
-Additional requirements if using manual installation: R(>=3.5.0) and python(>=3.7.3)
 
 ## Example run
 A possible simulation run is shown below:
 ```
-# With docker (recommended)
-docker run --rm -t -i -v $PWD:/app/ tcavazos/prs-admix-sim --sim 1 --snp_selection ceu --snp_weighting ceu
-
-# Without docker
+conda activate prs_sim
 python run_simulation.py --sim 1 --snp_selection ceu --snp_weighting ceu
+conda deactivate
 ```
 
 ## Simulation parameters  
