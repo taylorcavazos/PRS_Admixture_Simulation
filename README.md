@@ -7,7 +7,7 @@ These functions simulate European, African, and Admixed individuals using [mspri
 
 See our recent preprint for a detailed application and description of methods: 
 
-[Cavazos and Witte, Inclusion of Variants Discovered from Diverse Populations Improves Polygenic Risk Score Transferability, bioRxiv 2020](https://www.biorxiv.org/content/10.1101/2020.05.21.108845v1)
+[Cavazos and Witte, *Inclusion of Variants Discovered from Diverse Populations Improves Polygenic Risk Score Transferability*, bioRxiv 2020](https://www.biorxiv.org/content/10.1101/2020.05.21.108845v1)
 
 ## Getting Started 
 To run the functions described above follow the below instructions:
