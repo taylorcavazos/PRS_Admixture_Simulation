@@ -1,8 +1,11 @@
 """
-Want to be able to change weighting for empirical PRS (meta,LA,CEU), 
-change number of training samples used,
-change p-value, and r2,
-and finally change SNP selection (future use)
+Functions to calculate a empirical PRS for
+each population given a snp weighing and snp 
+selection approach.
+
+Description of options:
+snp selection - population, p-value, LD r2, sample size
+snp weighting - populations
 """
 
 import numpy as np, pandas as pd, math
@@ -30,6 +33,10 @@ def create_emp_prs(m,h2,n_admix,prefix,p,r2,
     snp_weighting="ceu",snp_selection="ceu",
     num2decrease=None,ld_distance=1e6,num_threads=8):
     """
+    This function carries out all steps required to 
+    create a PRS for Europeans, Africans, and 
+    admixed individuals given a selected PRS SNP 
+    selection and weighted strategy
 
     Parameters
     ----------
@@ -45,107 +52,241 @@ def create_emp_prs(m,h2,n_admix,prefix,p,r2,
         Path to simulated tree containing CEU individuals
     path_tree_YRI : str, optional
         Path to simulated tree containing YRI individuals
+    snp_weighting: str, optional
+        Population to use for SNP weights
+    snp_selection: str, optional
+        Population to use for SNP selection
     vcf_file : str, optional
         VCF file path with admixed genotypes
-
+    num2decrease: int, optional
+        Number of non-European samples to use in GWAS
+    ld_distance: int, optional
+        LD window size to use for clumping
+    num_threads: int, optional
+        number of threads to use for parallel processing
     """
+
+    # Get simulation number
     sim = prefix.split('sim')[1].split('/')[0]
+    # Load all data
     trees,sumstats,train_cases,train_controls,labels = _load_data(snp_weighting,snp_selection,path_tree_CEU,
                                                                   path_tree_YRI,prefix,m,h2,
                                                                   num2decrease)
+    # Select PRS variants given above parameters
     snps = _select_variants(sumstats[snp_selection],trees[snp_selection],m,h2,
                            p,r2,snp_selection,prefix,ld_distance,num_threads,num2decrease)
+    
+    # Compare causal SNP allele frequencies to GWAS selected SNP allele frequencies
     causal_inds =  np.linspace(0, trees["ceu"].num_sites, m, dtype=int,endpoint=False)
     _write_allele_freq_bins(sim,causal_inds,trees,prefix,snp_selection,prefix+vcf_file,m,h2,r2,p,train_cases,causal=True)
     _write_allele_freq_bins(sim,snps.astype(int),trees,prefix,snp_selection,prefix+vcf_file,m,h2,r2,p,train_cases) 
 
+    # If empirical PRS already exists output warning
     if os.path.isfile(f"{prefix}emp_prs/emp_prs_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{snp_selection}_"+\
                       f"snps_{len(train_cases[snp_selection])}cases_{snp_weighting}_weights_"+\
                       f"{len(train_cases[snp_weighting])}cases.hdf5"):
         print(f"\nEmpirical PRS for iteration={prefix.split('sim')[1].split('/')[0]} and provided parameters exists")
         print(f"If you would like to overwrite, remove {prefix}emp_prs/emp_prs_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{snp_selection}_snps_{len(train_cases[snp_selection])}cases_{snp_weighting}_weights_{len(train_cases[snp_weighting])}cases.hdf5")
         return
-
+    
+    # If empirical PRS does not exist, calculate for all populations
     else:
         print(f"Creating empricial with {snp_selection.upper()} selected snps and {snp_weighting.upper()} weights ")
-        
+        # SNP weights are not by local ancestry, create PRS by using weights from a single or meta study
         if snp_weighting != "la":
+            # Convert ORs to effect sizes, missing SNPs will have effect size of 0
             weights = np.log(sumstats[snp_weighting].reindex(snps,fill_value=1)["OR"])
             print("..... for the CEU population")
+            # Caculate PRS in Europeans
             prs_ceu = calc_prs_tree(dict(zip(snps,weights)),trees["ceu"])
             print("..... for the YRI population")
+            # Calculate PRS in Africans
             prs_yri = calc_prs_tree(dict(zip(snps,weights)),trees["yri"])
+            # Calculate PRS in admixed population
             print("..... for the admixed population")
             prs_admix,ids_admix = calc_prs_vcf(prefix+vcf_file,dict(zip(snps,weights)),n_admix)
+            # Combine all PRS
             prs_all = np.concatenate((prs_ceu,prs_yri,prs_admix),axis=None)
+            # Write output
             _write_output(prs_all,labels,prefix,m,h2,r2,p,snp_selection,snp_weighting,
                     len(train_cases[snp_weighting]),len(train_cases[snp_selection]))
+        # If SNP weights are by local ancestry
         else:
+            # Write out the ancestry for each PRS SNP
             _ancestry_snps_admix(snps,prefix,m,h2,r2,p,snp_selection,num2decrease)
+            # Create data dictionary of all study weights
             weights = {"ceu":np.log(sumstats["ceu"].reindex(snps,fill_value=1)["OR"]),
                        "yri":np.log(sumstats["yri"].reindex(snps,fill_value=1)["OR"]),
                        "meta":np.log(sumstats["meta"].reindex(snps,fill_value=1)["OR"])}
-
+            # Calculate PRS in Europeans (100% European ancestry)
             print("..... for the CEU population")
             prs_ceu = calc_prs_tree(dict(zip(snps,weights["ceu"])),trees["ceu"])
+            # Calculate PRS in Africans (100% African ancestry)
             print("..... for the YRI population")
             prs_yri = calc_prs_tree(dict(zip(snps,weights["yri"])),trees["yri"])
+            # Calculate PRS in admixed population, weight varies by local ancestry
             print("..... for the admixed population")
-            
-            prs_admix = calc_prs_vcf_la(prefix+vcf_file,weights,snps,n_admix,m,h2,r2,p,snp_selection,prefix,trees["ceu"].num_sites,num2decrease)
+            prs_admix = calc_prs_vcf_la(prefix+vcf_file,weights,snps,n_admix,m,h2,r2,p,
+                                        snp_selection,prefix,trees["ceu"].num_sites,num2decrease)
+            # Combine all results
             prs_all = np.concatenate((prs_ceu,prs_yri,prs_admix),axis=None)
+            # Write output
             _write_output(prs_all,labels,prefix,m,h2,r2,p,snp_selection,snp_weighting,
                     len(train_cases[snp_weighting]),len(train_cases[snp_selection]))
             return
     return
 
-def calc_prs_vcf_la(vcf_file,weights,snps,n_admix,m,h2,r2,p,pop,prefix,num_sites,num2decrease):
-    if num2decrease==None: anc_file = f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps.result.PRS"
-    else: anc_file = f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps_{num2decrease}.result.PRS"
-    anc = pd.read_csv(anc_file,sep="\t",index_col=0)
+def calc_prs_vcf_la(vcf_file,weights,snps,n_admix,m,h2,r2,
+                    p,pop,prefix,num_sites,num2decrease):
+    """
+    Function to calculate local ancestry weighted PRS for
+    admixed individuals
+
+    Parameters
+    ----------
+    vcf_file : str
+        VCF file path with admixed genotypes
+    weights : dict
+        summary statistics for each ancestry population
+        key - population code
+        value - summary statistics
+    snps : list
+        variant ids included in the PRS
+    n_admix : int
+        number of admixed samples
+    m : int
+        Number of causal variants
+    h2 : float
+        Heritability due to genetics
+    r2 : float
+        LD r2 used for clumping
+    p : float
+        p-value used for thresholding
+    pop : str
+        population used for SNP selection
+    prefix : str
+        Output file path
+    num_sites : int
+        Number of sites in the genome
+    num2decrease: int, optional
+        Number of non-European samples to use in GWAS
+
+    Returns
+    -------
+    numpy.array
+        PRS for each individual
+    """
+
+    # Load ancestry for each PRS variant
+    if num2decrease==None: # number of African samples match Europeans
+        anc_file = f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps.result.PRS"
+    else: # number of African samples are smaller than Europeans
+        anc_file = f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps_{num2decrease}.result.PRS"
+    anc = pd.read_csv(anc_file,sep="\t",index_col=0) # ancestry for PRS variants
+    # Get sample IDs for admixed samples
     sample_ids = pd.read_csv(f"{prefix}admixed_data/output/admix_afr_amer.prop.anc",
         sep="\t",index_col=0).index
+    # Initialize PRS vector
     prs = np.zeros(n_admix)
+    # Output progress
     pbar = tqdm.tqdm(total=num_sites)
+    # Open admix vcf file with genotypes of PRS variants
     with gzip.open(vcf_file,"rt") as f:
-        ind=0
-        for line in f:
-            if line[0] != "#":
-                if ind in snps:
-                    data = line.split("\t")[9:]
+        ind=0 # Track position in file
+        for line in f: # Loop through file lines
+            if line[0] != "#": # ignore header
+                if ind in snps: # loop through SNPs
+                    data = line.split("\t")[9:] # extract phased haplotypes from vcf line
+                    # convert to genotype
                     genotype = np.array([np.array(hap.split("|")).astype(int).sum() for hap in data])
-                    var_weighted=[]
-                    for g in range(0,len(genotype)):
+                    var_weighted=[] # Get weighted genotype for each PRS variant
+                    for g in range(0,len(genotype)): # Loop through individuals
+                        # Check individual ancestry and weight accordingly
+                        # If individual is diploid African, use African GWAS weight 
                         if anc.loc[ind,[sample_ids[g]+".0",sample_ids[g]+".1"]].sum() > 3:
                             var_weighted.append(genotype[g]*weights["yri"][ind])
+                        # If individual is haploid European/African, use Meta GWAS weight
                         elif anc.loc[ind,[sample_ids[g]+".0",sample_ids[g]+".1"]].sum() == 3:
                             var_weighted.append(genotype[g]*weights["meta"][ind])
+                        # If individual is diploid European, use European GWAS weight
                         elif anc.loc[ind,[sample_ids[g]+".0",sample_ids[g]+".1"]].sum() < 3:
                             var_weighted.append(genotype[g]*weights["ceu"][ind])
+                    # Add weighted variant for each person to overall PRS
                     prs=prs+np.array(var_weighted)
-                ind+=1
-                pbar.update(1)
+                ind+=1 # Update position of variant
+                pbar.update(1) # Update progress bar
     return prs
 
 def _ancestry_snps_admix(snps,prefix,m,h2,r2,p,pop,num2decrease):
-    if num2decrease==None: outfile = f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps.result.PRS"
-    else: outfile = f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps_{num2decrease}.result.PRS"
+    """
+    Function to extract ancestry at PRS variants for admixed population
+
+    Parameters
+    ----------
+    snps : list
+        variant ids included in the PRS
+    prefix : str
+        Output file path
+    m : int
+        Number of causal variants
+    h2 : float
+        Heritability due to genetics
+    r2 : float
+        LD r2 used for clumping
+    p : float
+        p-value used for thresholding
+    pop : str
+        population used for SNP selection
+    num2decrease: int, optional
+        Number of non-European samples to use in GWAS
+    """
+
+    # Load admixed individuals
+    if num2decrease==None: 
+        outfile = f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps.result.PRS"
+    else: 
+        outfile = f"{prefix}admixed_data/output/admix_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{pop}_snps_{num2decrease}.result.PRS"
+    # If ancestry for PRS variants does not exist extract from genome-wide ancestry
     if not os.path.isfile(outfile):
         with gzip.open(f"{prefix}admixed_data/output/admix_afr_amer.result.gz","rt") as anc:
             print("Extracting proportion ancestry at PRS variants")
             for ind,line in enumerate(anc):
-                if ind == 0:
+                if ind == 0: # extract header
                     anc_prs = pd.DataFrame(columns=line.split("\n")[0].split("\t")[2:])
 
-                elif ind-1 in snps:
+                elif ind-1 in snps: # check if SNP in PRS and if it is get phased ancestry
                     anc_prs.loc[ind-1,:] = line.split("\n")[0].split("\t")[2:]
-
+        # Write ancestry to file
         anc_prs.to_csv(outfile,sep="\t")
     return
 
 def _perform_meta(train_cases,m,h2,prefix):
+    """
+    Function to perform fixed-effects meta from European and 
+    African summary statistics
+
+    Parameters
+    ----------
+    train_cases : dict
+        samples used for training
+        key - population
+        value - sample IDs
+    m : int
+        Number of causal variants
+    h2 : float
+        Heritability due to genetics
+    prefix : str
+        Output file path
+
+    Returns
+    -------
+    pd.DataFrame
+        fixed-effects meta summary statistics
+    """
+    # Check if meta file already exists and if not create it
     if not os.path.isfile(prefix+f"emp_prs/meta_m_{m}_h2_{h2}_casesCEU_{len(train_cases['ceu'])}"+ \
                                  f"_casesYRI_{len(train_cases['yri'])}.txt"):
+        # Call Rscript to perform meta analysis
         print("\nPerforming a fixed_effects meta between CEU and YRI summary statistics")
         os.system("Rscript simulation/compute_meta_sum_stats.R " + \
                  f"{prefix}emp_prs/gwas_m_{m}_h2_{h2}_pop_ceu_cases_{len(train_cases['ceu'])}.txt " + \
@@ -153,35 +294,94 @@ def _perform_meta(train_cases,m,h2,prefix):
                  f"{prefix}emp_prs/meta_m_{m}_h2_{h2}_casesCEU_{len(train_cases['ceu'])}_casesYRI_{len(train_cases['yri'])}.txt")
         sum_stats = pd.read_csv(prefix+f"emp_prs/meta_m_{m}_h2_{h2}_casesCEU_{len(train_cases['ceu'])}"+ \
                                  f"_casesYRI_{len(train_cases['yri'])}.txt",sep="\t",index_col=0)
+        # Plot QQ plot of the results
         _plot_qq(sum_stats,prefix,f"meta_m_{m}_h2_{h2}_casesCEU_{len(train_cases['ceu'])}_casesYRI_{len(train_cases['yri'])}")
 
     return pd.read_csv(prefix+f"emp_prs/meta_m_{m}_h2_{h2}_casesCEU_{len(train_cases['ceu'])}_casesYRI_{len(train_cases['yri'])}.txt",sep="\t",index_col=0)
 
-def _select_variants(sum_stats,tree,m,h2,p,r2,pop,prefix,max_distance,num_threads,num2decrease):
+def _select_variants(sum_stats,tree,m,h2,p,r2,pop,prefix,
+    max_distance,num_threads,num2decrease):
+    """
+    Function to select PRS variants
+
+    Parameters
+    ----------
+    sum_stats : pd.DataFrame
+        GWAS summary statistics for a population
+    tree : msprime.TreeSequence
+        population tree created from msprime
+    m : int
+        Number of causal variants
+    h2 : float
+        Heritability due to genetics
+    p : float
+        p-value used for thresholding
+    r2 : float
+        LD r2 used for clumping
+    pop : str
+        population used for SNP selection
+    prefix : str
+        Output file path
+    max_distance : int
+        LD window size
+    num_threads: int
+        number of threads to use for parallel processing
+    num2decrease: int, optional
+        Number of non-European samples to use in GWAS
+
+    Returns
+    -------
+    numpy.array
+        PRS variant IDs
+    """
     print("-----------------------------------")
     print("Selecting variants for PRS building")
     print("-----------------------------------")
     print(f"Population used for LD clumping = {pop}")
     print(f"Parameters: p-value = {p} and r2 = {r2}")
+    # Get thresholded variants by p-value
     prs_vars = sum_stats[sum_stats["p-value"] < p].sort_values(by=["p-value"]).index
     print(f"# variants with p < {p}: {len(prs_vars)}")
+    # clump variants
     clumped_prs_vars = _ld_clump(tree,prs_vars,m,h2,pop,r2,p,
                                  prefix,max_distance,num_threads,num2decrease)
     print(f"# variants after clumping: {len(clumped_prs_vars)}")
     print("-----------------------------------")
+    # return significant independent variant list
     return clumped_prs_vars
 
 def _compute_maf_vcf(vcf_file,var_list):
+    """
+    Calculate MAF for admixed individuals
+
+    Parameters
+    ----------
+    vcf_file : str
+        VCF file path with admixed genotypes
+    var_list : np.array
+        list of variants included in the PRS
+
+    Returns
+    -------
+    numpy.array
+        PRS variant minor allele frequencies
+    """
     mafs = []
+    # Loop through vcf file
     with gzip.open(vcf_file,"rt") as f:
         ind = 0
         for line in f:
             if line[0] != "#":
+                # If variants in PRS, calculate MAF
                 if ind in var_list:
+                    # Get phased haplotypes
                     data = line.split("\n")[0].split("\t")[9:]
+                    # Convert to genotype
                     genotype = np.array([np.array(hap.split("|")).astype(int).sum() for hap in data])
                     genotype = genotype.reshape(1,len(genotype))
+                    # Calculate allele frequency
                     freq = np.sum(genotype,axis=1)/(2*genotype.shape[1])
+                    # Calculate MAF
                     if freq < 0.5: maf = freq
                     else: maf = 1-freq
                     mafs.append(maf)
@@ -190,6 +390,23 @@ def _compute_maf_vcf(vcf_file,var_list):
     return np.array(mafs)
 
 def _return_maf_group(mafs,n_sites):
+    """
+    Helper function for plotting
+    minor allele freuqncy (MAF) distribution
+    of PRS variants
+
+    Parameters
+    ----------
+    mafs : np.array
+        Minor allele frequency for variants
+    n_sites : int
+        Total number of variants
+
+    Returns
+    -------
+    list
+        Percent of sites in each MAF group
+    """
     G1 = len(mafs[mafs<0.01])/n_sites
     G2 = len(mafs[(mafs>=0.01)&(mafs<0.1)])/n_sites
     G3 = len(mafs[(mafs>=0.1)&(mafs<0.2)])/n_sites
@@ -200,17 +417,41 @@ def _return_maf_group(mafs,n_sites):
 
 def _write_allele_freq_bins(sim,var_list,trees,prefix,snp_selection,vcf_file,
     m,h2,r2,p,train_cases,causal=False):
-    if not os.path.isfile(f"{prefix}summary/emp_maf_bins_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{snp_selection}_snps_{len(train_cases)}cases_{sim}.txt"):
-        maf_ceu = _compute_maf(trees["ceu"],prefix,"ceu")[var_list]
-        maf_yri = _compute_maf(trees["yri"],prefix,"yri")[var_list]
-        maf_admix = _compute_maf_vcf(vcf_file,var_list)
+    """
+    Helper function to write MAF bins for list of variants.
+    MAF calculated within each population.
 
+    Parameters
+    ----------
+    sim : int
+        simulation identifier
+    var_list : np.array
+        Variants to compute AF for
+    trees : dict
+        key - population
+        value - msprime.TreeSequence
+    prefix : str
+        Output file path
+    snp_selection: str, optional
+        Population to use for SNP selection
+    vcf_file : str, optional
+        VCF file path with admixed genotypes
+    """
+    # Check if MAF has already been calculated
+    if not os.path.isfile(f"{prefix}summary/emp_maf_bins_m_{m}_h2_{h2}_r2_{r2}_p_{p}_{snp_selection}_snps_{len(train_cases)}cases_{sim}.txt"):
+        # Compute MAF in Europeans
+        maf_ceu = _compute_maf(trees["ceu"],prefix,"ceu")[var_list]
+        # Compute MAF in Africans
+        maf_yri = _compute_maf(trees["yri"],prefix,"yri")[var_list]
+        # Compute MAF in admixed individuals
+        maf_admix = _compute_maf_vcf(vcf_file,var_list)
+        # Get proportion of variants that fall in each MAF bin
         df = pd.DataFrame(columns=["sim","pop","0 - 0.01","0.01 - 0.1","0.1 - 0.2","0.2 - 0.3","0.3 - 0.4","0.4 - 0.5"])
         for pop,mafs in zip(["ceu","yri","admix"],[maf_ceu,maf_yri,maf_admix]):
             groups = _return_maf_group(mafs,len(mafs))
             sub_df = pd.DataFrame([[sim,pop]+groups],columns=["sim","pop","0 - 0.01","0.01 - 0.1","0.1 - 0.2","0.2 - 0.3","0.3 - 0.4","0.4 - 0.5"])
             df = df.append(sub_df, ignore_index=True)
-
+        # Write files
         if not causal:
             df.to_csv(f"{prefix}summary/emp_maf_bins_m_{m}_h2_{h2}_r2_{r2}_p_{p}"+\
                         f"_{snp_selection}_snps_{len(train_cases[snp_selection])}cases_"+\
@@ -220,6 +461,7 @@ def _write_allele_freq_bins(sim,var_list,trees,prefix,snp_selection,vcf_file,
     return
 
 def _compute_summary_stats(m,h2,tree,train_cases,train_controls,pop,prefix):
+
     if not os.path.isfile(prefix+"emp_prs/gwas_m_{}_h2_{}_pop_{}_cases_{}.txt".format(m,h2,pop,len(train_cases))):
         print(f"Computing SNP MAF for {pop.upper()}. GWAS will be performed for SNPs with maf > 1%")
         mafs = _compute_maf(tree,prefix,pop)
