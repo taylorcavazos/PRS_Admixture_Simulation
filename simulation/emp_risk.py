@@ -74,9 +74,8 @@ def create_emp_prs(m,h2,n_admix,prefix,p,r2,
     sim = prefix.split('sim')[1].split('/')[0]
     # load all data
     trees,sumstats,train_cases,train_controls,labels = _load_data(snp_weighting,snp_selection,
-    															  path_tree_CEU,
-                                                                  path_tree_YRI,prefix,m,h2,
-                                                                  num2decrease)
+    															  path_tree_CEU,path_tree_YRI,
+                                                                  prefix,m,h2,num2decrease)
     # select PRS variants given above parameters
     snps = _select_variants(sumstats[snp_selection],trees[snp_selection],m,h2,
                            p,r2,snp_selection,prefix,ld_distance,num_threads,num2decrease)
