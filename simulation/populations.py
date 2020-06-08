@@ -280,6 +280,7 @@ def _out_of_africa(N_CEU, N_YRI, N_CHB, rmap):
 	    # Population B merges into YRI at T_B
 	    msprime.MassMigration(
 	        time=T_B, source=1, destination=0, proportion=1.0),
+	    msprime.MigrationRateChange(time=T_B, rate=0), # added rate change initially missing
 	    # Size changes to N_A at T_AF
 	    msprime.PopulationParametersChange(
 	        time=T_AF, initial_size=N_A, population_id=0)
