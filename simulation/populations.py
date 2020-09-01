@@ -182,25 +182,25 @@ def _extract_samples_for_admixture(sample_map,tree,N_MATE,prefix,chrom):
 	return mate_samples
 
 def _write_sample_map(tree, N_CEU, N_YRI):
-	"""
-	Write ancestry of samples
+    """
+    Write ancestry of samples
 
-	Parameters
-	----------
-	tree : msprime.TreeSequence
-		simulated population genotypes and samples from msprime
-	N_CEU : int
-		Number of samples of European ancestry
-	N_YRI : int
-		Number of samples of African ancestry
+    Parameters
+    ----------
+    tree : msprime.TreeSequence
+	simulated population genotypes and samples from msprime
+    N_CEU : int
+	Number of samples of European ancestry
+    N_YRI : int
+	Number of samples of African ancestry
 
-	Returns
-	-------
-	pd.DataFrame
-		Table with sample IDs, haplotype positions, and ancestry 
-	"""
+    Returns
+    -------
+    pd.DataFrame
+	Table with sample IDs, haplotype positions, and ancestry 
+    """
 
-	# Codes that relate to each ancestry group
+    # Codes that relate to each ancestry group
     pop_dict = {0:"YRI",1:"CEU",2:"CHB"}
     pops,inds,hap1,hap2 = [],[],[],[]
     count=0 # sample id tracker
