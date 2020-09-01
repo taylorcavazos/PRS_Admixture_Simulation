@@ -473,7 +473,7 @@ def _write_allele_freq_bins(sim,var_list,trees,prefix,snp_selection,vcf_file,
     return
 
 def _compute_summary_stats(m,h2,tree,train_cases,train_controls,pop,prefix):
-	"""
+    """
     This function computes the summary statistics for
     each variant in the genome if it has maf > 1%
 
