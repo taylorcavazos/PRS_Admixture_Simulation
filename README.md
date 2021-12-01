@@ -31,7 +31,7 @@ rm -rf rfmix
 # Set up virtual environment (recommended: conda) 
 conda create --name prs_sim python=3.7
 conda activate prs_sim
-conda install --yes --file requirements.txt
+conda install -c conda-forge --yes --file requirements.txt
 conda install -c conda-forge r=3.6.0
 conda deactivate
 ```
