@@ -14,7 +14,6 @@ import msprime
 import sys, threading
 import gzip, h5py, os
 from scipy import stats
-import statsmodels.api as sm
 import tqdm
 import gzip
 from scipy import stats

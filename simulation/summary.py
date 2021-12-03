@@ -115,8 +115,8 @@ def plot_true_vs_empirical(prefix,true_prs,emp_prs,anc_inds,train_cases,snp_sele
     fig,axes = plt.subplots(ncols=2,nrows=1,figsize=(20,10))
     for key in ['ceu', 'high', 'mid', 'low', 'yri']:
         for ind,prs in enumerate([true_prs,emp_prs]):
-            sns.distplot(stats.zscore(prs)[anc_inds[key]],color=colors[key],label=labels[key],
-                hist=False,kde=True,kde_kws = {'shade': True, 'linewidth': 3},ax=axes[ind])
+            sns.histplot(stats.zscore(prs)[anc_inds[key]],color=colors[key],label=labels[key],
+                ax=axes[ind],kde=True)
             axes[ind].set_xlabel(titles[ind],fontsize=20)
             axes[ind].set_ylabel("Density",fontsize=20)
             axes[ind].set_xticklabels(axes[ind].get_xticks(),fontsize=20)
